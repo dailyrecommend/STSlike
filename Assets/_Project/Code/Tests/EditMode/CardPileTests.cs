@@ -97,6 +97,35 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
+        public void Remove_TakesOutSpecificCard_ReturnsTrue()
+        {
+            var b = MakeCard("B");
+            var pile = new CardPile();
+            pile.Add(MakeCard("A"));
+            pile.Add(b);
+            pile.Add(MakeCard("C"));
+
+            bool removed = pile.Remove(b);
+
+            Assert.IsTrue(removed);
+            Assert.AreEqual(2, pile.Count);
+            CollectionAssert.AreEqual(
+                new[] { "A", "C" },
+                pile.Cards.Select(c => c.Id).ToArray());
+        }
+
+        [Test]
+        public void Remove_CardNotInPile_ReturnsFalse()
+        {
+            var pile = PileOf("A", "B");
+
+            bool removed = pile.Remove(MakeCard("A")); // different instance
+
+            Assert.IsFalse(removed);
+            Assert.AreEqual(2, pile.Count);
+        }
+
+        [Test]
         public void Clear_EmptiesThePile()
         {
             var pile = PileOf("A", "B");

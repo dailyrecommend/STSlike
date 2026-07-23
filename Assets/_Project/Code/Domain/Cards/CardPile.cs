@@ -35,6 +35,17 @@ namespace STSlike.Domain.Cards
                 Add(card);
         }
 
+        /// <summary>
+        /// Removes a specific card instance (used when playing/discarding a
+        /// chosen card from hand). Returns false if it was not present.
+        /// </summary>
+        public bool Remove(Card card)
+        {
+            if (card == null)
+                throw new ArgumentNullException(nameof(card));
+            return _cards.Remove(card);
+        }
+
         /// <summary>Removes and returns the top card (last added).</summary>
         public Card Draw()
         {
