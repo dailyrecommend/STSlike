@@ -2,7 +2,9 @@
     "name": "STSlike.Presentation",
     "rootNamespace": "STSlike.Presentation",
     "references": [
-        "STSlike.Domain"
+        "STSlike.Domain",
+        "STSlike.Data",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

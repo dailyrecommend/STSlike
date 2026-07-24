@@ -441,6 +441,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1762717757}
+  - component: {fileID: 1762717758}
+  - component: {fileID: 1762717759}
   m_Layer: 0
   m_Name: CombatTest
   m_TagString: Untagged
@@ -463,6 +465,47 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1762717758
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1762717756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4d09c114631e1148924e9ef0eedb901, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.CombatDebugView
+  fontSize: 26
+  panelWidth: 780
+--- !u!114 &1762717759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1762717756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c7eb91efba116544af2f6c7e40a2846, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.CombatLifetimeScope
+  parentReference:
+    TypeName: 
+  autoRun: 1
+  autoInjectGameObjects: []
+  seed: 0
+  cardsPerTurn: 5
+  playerHp: 70
+  maxEnergy: 3
+  enemyHp: 45
+  enemyAttack: 12
+  starterDeck:
+  - card: {fileID: 11400000, guid: 3356d789a553b8349ab9a5944cf1231e, type: 2}
+    count: 5
+  - card: {fileID: 11400000, guid: 7350e71ec3f90d340913c0930e970fe3, type: 2}
+    count: 5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

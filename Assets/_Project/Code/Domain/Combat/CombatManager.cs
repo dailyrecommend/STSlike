@@ -4,28 +4,28 @@ using System.Linq;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Effects;
+using STSlike.Domain.Events;
 
 namespace STSlike.Domain.Combat
 {
     /// <summary>
     /// Orchestrates the combat loop: begin turn -> play cards -> end turn ->
-    /// enemy acts -> check win/lose. Holds no rendering; it exposes a single
-    /// <see cref="StateChanged"/> notification that a view subscribes to. That
-    /// thin event is the seam a full event bus will replace later.
+    /// enemy acts -> check win/lose. Holds no rendering. Instead of a single
+    /// "something changed" signal, it publishes typed events on an injected
+    /// <see cref="IEventBus"/>, which the UI and character mechanics subscribe to.
     /// </summary>
     public sealed class CombatManager
     {
         private readonly CombatContext _context;
+        private readonly IEventBus _bus;
         private readonly int _cardsPerTurn;
-
-        /// <summary>Raised whenever visible combat state may have changed.</summary>
-        public event Action StateChanged;
 
         public CombatContext Context => _context;
 
-        public CombatManager(CombatContext context, int cardsPerTurn = 5)
+        public CombatManager(CombatContext context, IEventBus bus, int cardsPerTurn = 5)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _bus = bus ?? throw new ArgumentNullException(nameof(bus));
             if (cardsPerTurn < 0)
                 throw new ArgumentOutOfRangeException(nameof(cardsPerTurn));
             _cardsPerTurn = cardsPerTurn;
@@ -37,6 +37,7 @@ namespace STSlike.Domain.Combat
                 throw new ArgumentNullException(nameof(startingDeck));
 
             _context.Player.Deck.Prepare(startingDeck);
+            _bus.Publish(new CombatStartedEvent());
             BeginPlayerTurn();
         }
 
@@ -68,7 +69,8 @@ namespace STSlike.Domain.Combat
             player.Deck.DiscardFromHand(card);
 
             CheckCombatEnd();
-            RaiseChanged();
+            _bus.Publish(new CardPlayedEvent(card));
+            PublishEndedIfOver();
             return true;
         }
 
@@ -77,12 +79,13 @@ namespace STSlike.Domain.Combat
             if (_context.Phase != CombatPhase.PlayerTurn)
                 return;
 
+            _bus.Publish(new PlayerTurnEndedEvent());
             _context.Player.Deck.DiscardHand();
             RunEnemyTurn();
 
             if (_context.IsOver)
             {
-                RaiseChanged();
+                PublishEndedIfOver();
                 return;
             }
 
@@ -97,7 +100,7 @@ namespace STSlike.Domain.Combat
             player.Deck.DrawCards(_cardsPerTurn);
 
             _context.Phase = CombatPhase.PlayerTurn;
-            RaiseChanged();
+            _bus.Publish(new PlayerTurnStartedEvent());
         }
 
         private void RunEnemyTurn()
@@ -124,6 +127,12 @@ namespace STSlike.Domain.Combat
                 _context.Phase = CombatPhase.Lost;
         }
 
-        private void RaiseChanged() => StateChanged?.Invoke();
+        private void PublishEndedIfOver()
+        {
+            if (_context.Phase == CombatPhase.Won)
+                _bus.Publish(new CombatEndedEvent(true));
+            else if (_context.Phase == CombatPhase.Lost)
+                _bus.Publish(new CombatEndedEvent(false));
+        }
     }
 }

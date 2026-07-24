@@ -5,6 +5,7 @@ using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Effects;
+using STSlike.Domain.Events;
 using STSlike.Domain.Randomness;
 
 namespace STSlike.Tests.EditMode
@@ -34,7 +35,7 @@ namespace STSlike.Tests.EditMode
             var player = new PlayerState("Player", playerHp, maxEnergy, new Deck(new SystemRng(seed)));
             var enemy = new EnemyState("Enemy", enemyHp, enemyAttack);
             var ctx = new CombatContext(player, enemy);
-            var mgr = new CombatManager(ctx, cardsPerTurn);
+            var mgr = new CombatManager(ctx, new EventBus(), cardsPerTurn);
             mgr.StartCombat(deck);
             return (mgr, ctx);
         }
@@ -175,16 +176,27 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
-        public void StateChanged_FiresOnPlayAndEndTurn()
+        public void Events_ArePublished_ForCardPlayAndCombatEnd()
         {
-            var (mgr, ctx) = NewCombat(DeckOf(10, Strike));
-            int count = 0;
-            mgr.StateChanged += () => count++;
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var enemy = new EnemyState("Enemy", 6, 10); // dies to one strike
+            var ctx = new CombatContext(player, enemy);
+            var bus = new EventBus();
 
-            mgr.PlayCard(FirstInHand(ctx), ctx.Enemy);
-            mgr.EndTurn();
+            int cardPlayed = 0, turnStarted = 0;
+            bool endedWon = false;
+            bus.Subscribe<CardPlayedEvent>(_ => cardPlayed++);
+            bus.Subscribe<PlayerTurnStartedEvent>(_ => turnStarted++);
+            bus.Subscribe<CombatEndedEvent>(e => endedWon = e.PlayerWon);
 
-            Assert.GreaterOrEqual(count, 2);
+            var mgr = new CombatManager(ctx, bus, 5);
+            mgr.StartCombat(DeckOf(10, Strike)); // publishes PlayerTurnStarted
+
+            mgr.PlayCard(FirstInHand(ctx), ctx.Enemy); // lethal: CardPlayed + CombatEnded(won)
+
+            Assert.AreEqual(1, cardPlayed);
+            Assert.GreaterOrEqual(turnStarted, 1);
+            Assert.IsTrue(endedWon);
         }
     }
 }

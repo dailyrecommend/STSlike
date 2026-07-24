@@ -1,0 +1,16 @@
+{
+    "name": "STSlike.Data",
+    "rootNamespace": "STSlike.Data",
+    "references": [
+        "STSlike.Domain"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

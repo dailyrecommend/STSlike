@@ -3,6 +3,7 @@
     "rootNamespace": "STSlike.Tests.EditMode",
     "references": [
         "STSlike.Domain",
+        "STSlike.Data",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
