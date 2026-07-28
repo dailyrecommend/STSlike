@@ -1,3 +1,4 @@
+using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 
 namespace STSlike.Domain.Combat
@@ -11,7 +12,7 @@ namespace STSlike.Domain.Combat
     /// <summary>The player has ended their turn (before the enemy acts).</summary>
     public readonly struct PlayerTurnEndedEvent { }
 
-    /// <summary>A card has finished resolving.</summary>
+    /// <summary>A card has started being played (before its effects resolve).</summary>
     public readonly struct CardPlayedEvent
     {
         public readonly Card Card;
@@ -23,5 +24,29 @@ namespace STSlike.Domain.Combat
     {
         public readonly bool PlayerWon;
         public CombatEndedEvent(bool playerWon) => PlayerWon = playerWon;
+    }
+
+    /// <summary>Damage was applied to a combatant (raised by the effect that dealt it).</summary>
+    public readonly struct DamageDealtEvent
+    {
+        public readonly Combatant Target;
+        public readonly int Amount;
+        public DamageDealtEvent(Combatant target, int amount)
+        {
+            Target = target;
+            Amount = amount;
+        }
+    }
+
+    /// <summary>Block was granted to a combatant.</summary>
+    public readonly struct BlockGainedEvent
+    {
+        public readonly Combatant Actor;
+        public readonly int Amount;
+        public BlockGainedEvent(Combatant actor, int amount)
+        {
+            Actor = actor;
+            Amount = amount;
+        }
     }
 }

@@ -4,7 +4,8 @@
     "references": [
         "STSlike.Domain",
         "STSlike.Data",
-        "VContainer"
+        "VContainer",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

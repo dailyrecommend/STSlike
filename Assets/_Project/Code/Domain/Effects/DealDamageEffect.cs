@@ -1,8 +1,9 @@
 using System;
+using STSlike.Domain.Combat;
 
 namespace STSlike.Domain.Effects
 {
-    /// <summary>Deals damage to the target.</summary>
+    /// <summary>Deals damage to the target, then announces it on the bus.</summary>
     [Serializable]
     public sealed class DealDamageEffect : ICardEffect
     {
@@ -17,7 +18,11 @@ namespace STSlike.Domain.Effects
 
         public void Execute(EffectContext context)
         {
-            context.Target?.TakeDamage(amount);
+            if (context.Target == null)
+                return;
+
+            context.Target.TakeDamage(amount);
+            context.Bus?.Publish(new DamageDealtEvent(context.Target, amount));
         }
     }
 }

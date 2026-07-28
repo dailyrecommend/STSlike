@@ -53,6 +53,16 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
+        public void PlayingCards_RecordsCommandsInHistory()
+        {
+            var (mgr, ctx) = NewCombat(DeckOf(10, Strike));
+
+            mgr.PlayCard(FirstInHand(ctx), ctx.Enemy);
+
+            Assert.GreaterOrEqual(mgr.CommandHistory.Count, 1);
+        }
+
+        [Test]
         public void PlayCard_DealsDamage_SpendsEnergy_DiscardsCard()
         {
             var (mgr, ctx) = NewCombat(DeckOf(10, Strike), enemyHp: 50);

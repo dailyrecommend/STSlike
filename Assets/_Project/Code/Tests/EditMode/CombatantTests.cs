@@ -86,6 +86,42 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
+        public void Heal_RestoresHp_ClampedToMax()
+        {
+            var c = new Combatant("Dummy", 50);
+            c.TakeDamage(30); // at 20
+
+            c.Heal(8);
+            Assert.AreEqual(28, c.CurrentHp);
+
+            c.Heal(999);
+            Assert.AreEqual(50, c.CurrentHp); // never above max
+        }
+
+        [Test]
+        public void Heal_DoesNotReviveTheDead()
+        {
+            var c = new Combatant("Dummy", 10);
+            c.TakeDamage(10);
+
+            c.Heal(5);
+
+            Assert.AreEqual(0, c.CurrentHp);
+            Assert.IsTrue(c.IsDead);
+        }
+
+        [Test]
+        public void RestoreToFull_SetsHpToMax()
+        {
+            var c = new Combatant("Dummy", 50);
+            c.TakeDamage(40);
+
+            c.RestoreToFull();
+
+            Assert.AreEqual(50, c.CurrentHp);
+        }
+
+        [Test]
         public void Constructor_RejectsInvalidMaxHp()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new Combatant("X", 0));

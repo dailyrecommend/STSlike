@@ -1,8 +1,9 @@
 using System;
+using STSlike.Domain.Combat;
 
 namespace STSlike.Domain.Effects
 {
-    /// <summary>Grants block to the caster (the one who played the card).</summary>
+    /// <summary>Grants block to the caster, then announces it on the bus.</summary>
     [Serializable]
     public sealed class GainBlockEffect : ICardEffect
     {
@@ -18,6 +19,7 @@ namespace STSlike.Domain.Effects
         public void Execute(EffectContext context)
         {
             context.Source.GainBlock(amount);
+            context.Bus?.Publish(new BlockGainedEvent(context.Source, amount));
         }
     }
 }

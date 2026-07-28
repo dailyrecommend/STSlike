@@ -53,5 +53,22 @@ namespace STSlike.Domain.Actors
         {
             Block = 0;
         }
+
+        /// <summary>
+        /// Restores health up to the maximum. Does nothing to a dead combatant —
+        /// reviving is a separate concern, not a side effect of healing.
+        /// </summary>
+        public void Heal(int amount)
+        {
+            if (amount <= 0 || IsDead)
+                return;
+            CurrentHp = Math.Min(MaxHp, CurrentHp + amount);
+        }
+
+        /// <summary>Back to full health (used when a fresh run begins).</summary>
+        public void RestoreToFull()
+        {
+            CurrentHp = MaxHp;
+        }
     }
 }

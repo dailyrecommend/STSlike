@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using STSlike.Domain.Actors;
+using STSlike.Domain.Combat;
 using STSlike.Domain.Effects;
+using STSlike.Domain.Events;
 
 namespace STSlike.Tests.EditMode
 {
@@ -44,6 +46,51 @@ namespace STSlike.Tests.EditMode
 
             Assert.AreEqual(34, target.CurrentHp); // 10 - 4 block = 6 to hp
             Assert.AreEqual(0, target.Block);
+        }
+
+        [Test]
+        public void DealDamageEffect_PublishesDamageDealtEvent()
+        {
+            var bus = new EventBus();
+            DamageDealtEvent captured = default;
+            int count = 0;
+            bus.Subscribe<DamageDealtEvent>(e => { captured = e; count++; });
+
+            var source = new Combatant("Player", 70);
+            var target = new Combatant("Enemy", 40);
+            new DealDamageEffect(7).Execute(new EffectContext(source, target, bus));
+
+            Assert.AreEqual(1, count);
+            Assert.AreEqual(7, captured.Amount);
+            Assert.AreSame(target, captured.Target);
+        }
+
+        [Test]
+        public void GainBlockEffect_PublishesBlockGainedEvent()
+        {
+            var bus = new EventBus();
+            BlockGainedEvent captured = default;
+            int count = 0;
+            bus.Subscribe<BlockGainedEvent>(e => { captured = e; count++; });
+
+            var source = new Combatant("Player", 70);
+            var target = new Combatant("Enemy", 40);
+            new GainBlockEffect(5).Execute(new EffectContext(source, target, bus));
+
+            Assert.AreEqual(1, count);
+            Assert.AreEqual(5, captured.Amount);
+            Assert.AreSame(source, captured.Actor);
+        }
+
+        [Test]
+        public void Effects_WithoutBus_DoNotThrow()
+        {
+            var source = new Combatant("Player", 70);
+            var target = new Combatant("Enemy", 40);
+            var context = new EffectContext(source, target); // no bus
+
+            Assert.DoesNotThrow(() => new DealDamageEffect(6).Execute(context));
+            Assert.DoesNotThrow(() => new GainBlockEffect(4).Execute(context));
         }
 
         // The payoff of Strategy: a card is just a list of ICardEffect, and the

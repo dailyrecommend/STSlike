@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
+using STSlike.Domain.Commands;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
 
@@ -19,8 +20,12 @@ namespace STSlike.Domain.Combat
         private readonly CombatContext _context;
         private readonly IEventBus _bus;
         private readonly int _cardsPerTurn;
+        private readonly CommandInvoker _invoker = new CommandInvoker();
 
         public CombatContext Context => _context;
+
+        /// <summary>Commands executed so far this combat (for replay/debugging).</summary>
+        public IReadOnlyList<ICommand> CommandHistory => _invoker.History;
 
         public CombatManager(CombatContext context, IEventBus bus, int cardsPerTurn = 5)
         {
@@ -60,16 +65,17 @@ namespace STSlike.Domain.Combat
                 return false;
 
             player.SpendEnergy(card.Cost);
+            _bus.Publish(new CardPlayedEvent(card));
 
             Combatant effectTarget = target ?? _context.Enemy;
-            var effectContext = new EffectContext(player, effectTarget);
+            var effectContext = new EffectContext(player, effectTarget, _bus);
             foreach (ICardEffect effect in card.Effects)
-                effect.Execute(effectContext);
+                _invoker.Enqueue(new EffectCommand(effect, effectContext));
+            _invoker.ExecuteAll();
 
             player.Deck.DiscardFromHand(card);
 
             CheckCombatEnd();
-            _bus.Publish(new CardPlayedEvent(card));
             PublishEndedIfOver();
             return true;
         }
@@ -111,8 +117,10 @@ namespace STSlike.Domain.Combat
             // Enemy actions reuse the same effect system as cards.
             if (enemy.Intent.Type == IntentType.Attack)
             {
-                new DealDamageEffect(enemy.Intent.Amount)
-                    .Execute(new EffectContext(enemy, _context.Player));
+                _invoker.Enqueue(new EffectCommand(
+                    new DealDamageEffect(enemy.Intent.Amount),
+                    new EffectContext(enemy, _context.Player, _bus)));
+                _invoker.ExecuteAll();
             }
 
             enemy.PlanNextTurn();
