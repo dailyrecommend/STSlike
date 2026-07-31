@@ -22,11 +22,21 @@ namespace STSlike.Domain.Run
         public RewardOfferedEvent(int encounterNumber) => EncounterNumber = encounterNumber;
     }
 
-    /// <summary>The player took one of the offered rewards.</summary>
+    /// <summary>
+    /// The player took one of the offered rewards. Carries the reward itself so
+    /// listeners (stats, achievements, UI) can react to what was chosen without
+    /// the reward flow having to know about any of them.
+    /// </summary>
     public readonly struct RewardTakenEvent
     {
         public readonly int EncounterNumber;
-        public RewardTakenEvent(int encounterNumber) => EncounterNumber = encounterNumber;
+        public readonly Rewards.IRunReward Reward;
+
+        public RewardTakenEvent(int encounterNumber, Rewards.IRunReward reward)
+        {
+            EncounterNumber = encounterNumber;
+            Reward = reward;
+        }
     }
 
     /// <summary>The run is over, either cleared or failed.</summary>

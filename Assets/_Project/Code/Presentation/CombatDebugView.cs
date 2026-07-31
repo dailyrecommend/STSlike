@@ -4,6 +4,7 @@ using UnityEngine;
 using VContainer;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
+using STSlike.Domain.Progression;
 using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
 
@@ -25,15 +26,18 @@ namespace STSlike.Presentation
         private CombatRunner _runner;
         private RunFlow _flow;
         private CombatSequencer _sequencer;
+        private IRunHistoryRepository _history;
         private readonly List<string> _log = new List<string>();
 
         [Inject]
-        public void Construct(IEventBus bus, CombatRunner runner, RunFlow flow, CombatSequencer sequencer)
+        public void Construct(IEventBus bus, CombatRunner runner, RunFlow flow,
+            CombatSequencer sequencer, IRunHistoryRepository history)
         {
             _bus = bus;
             _runner = runner;
             _flow = flow;
             _sequencer = sequencer;
+            _history = history;
 
             bus.Subscribe<RunStartedEvent>(OnRunStarted);
             bus.Subscribe<EncounterStartedEvent>(OnEncounterStarted);
@@ -115,7 +119,15 @@ namespace STSlike.Presentation
 
             // Run-persistent state: this HP carries between encounters.
             GUILayout.Label(
-                $"RUN   HP {run.Player.CurrentHp}/{run.Player.MaxHp}   Deck {run.Cards.Count}", labelStyle);
+                $"RUN   HP {run.Player.CurrentHp}/{run.Player.MaxHp}   Deck {run.Cards.Count}" +
+                $"   Seed {run.Seed}", labelStyle);
+
+            // Persisted meta progression, proving records survive across runs.
+            if (_history != null)
+            {
+                GUILayout.Label(
+                    $"HISTORY   runs {_history.TotalRuns}   wins {_history.TotalWins}", labelStyle);
+            }
             GUILayout.Space(10);
 
             if (run.IsFinished)

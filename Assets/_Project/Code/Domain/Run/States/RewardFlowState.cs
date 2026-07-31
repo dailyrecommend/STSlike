@@ -47,7 +47,7 @@ namespace STSlike.Domain.Run.States
 
             IRunReward chosen = Options[index];
             chosen.Apply(_run);
-            _bus.Publish(new RewardTakenEvent(_run.CurrentEncounter));
+            _bus.Publish(new RewardTakenEvent(_run.CurrentEncounter, chosen));
             Advance();
         }
 

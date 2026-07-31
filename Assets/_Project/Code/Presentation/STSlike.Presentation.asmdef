@@ -4,8 +4,11 @@
     "references": [
         "STSlike.Domain",
         "STSlike.Data",
+        "STSlike.Infrastructure",
         "VContainer",
-        "UniTask"
+        "UniTask",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

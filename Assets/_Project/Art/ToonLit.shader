@@ -18,6 +18,15 @@ Shader "Custom/ToonLit"
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2             // Back
         [ToggleOff(_RECEIVE_SHADOWS_OFF)] _ReceiveShadows ("Receive Shadows", Float) = 1
 
+        [Header(Shading Normal)]
+        // Blends the real normal toward a sphere centered inside the mesh. The
+        // cel terminator follows the normal field, so a low-poly field makes it
+        // kink along triangle edges; a spherical field makes it a clean curve.
+        // Silhouette, outline and texture are untouched.
+        [Toggle(_SPHERICAL_NORMAL)] _UseSphericalNormal ("Smooth Shading Normal", Float) = 0
+        _SphereNormalBlend ("Sphere Blend", Range(0,1)) = 0.6
+        _SphereCenterOS ("Sphere Center (object space)", Vector) = (0,0,0,0)
+
         [Header(Toon Shading)]
         _ShadowColor ("Shadow Tint", Color) = (0.6,0.6,0.7,1)
         _ShadowThreshold ("Shadow Threshold", Range(0,1)) = 0.5
@@ -64,6 +73,9 @@ Shader "Custom/ToonLit"
             float  _ZWrite;
             float  _Cull;
             half   _ReceiveShadows;
+            float  _UseSphericalNormal;
+            half   _SphereNormalBlend;
+            float4 _SphereCenterOS;
             half4  _ShadowColor;
             half   _ShadowThreshold;
             half   _ShadowSmoothness;
@@ -95,6 +107,7 @@ Shader "Custom/ToonLit"
 
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _RECEIVE_SHADOWS_OFF
+            #pragma shader_feature_local_fragment _SPHERICAL_NORMAL
 
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             // Per-pixel only: this shader has no vertex-light path, so compiling
@@ -131,6 +144,9 @@ Shader "Custom/ToonLit"
                 float3 normalWS   : TEXCOORD1;
                 float2 uv         : TEXCOORD2;
                 float  fogCoord   : TEXCOORD3;
+                #if defined(_SPHERICAL_NORMAL)
+                float3 positionOS : TEXCOORD5;
+                #endif
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 float4 shadowCoord: TEXCOORD4;
                 #endif
@@ -153,6 +169,9 @@ Shader "Custom/ToonLit"
                 OUT.normalWS   = normInputs.normalWS;
                 OUT.uv         = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.fogCoord   = ComputeFogFactor(posInputs.positionCS.z);
+                #if defined(_SPHERICAL_NORMAL)
+                OUT.positionOS = IN.positionOS.xyz;
+                #endif
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 OUT.shadowCoord = GetShadowCoord(posInputs);
                 #endif
@@ -204,6 +223,20 @@ Shader "Custom/ToonLit"
                 #endif
 
                 float3 normalWS  = NormalizeNormalPerPixel(IN.normalWS);
+
+                // Swap in a smoother normal field for lighting only. Everything
+                // else — silhouette, depth, outline — still uses the real mesh.
+                #if defined(_SPHERICAL_NORMAL)
+                {
+                    float3 dirOS = IN.positionOS - _SphereCenterOS.xyz;
+                    if (dot(dirOS, dirOS) > 1e-8)
+                    {
+                        float3 sphereWS = normalize(TransformObjectToWorldNormal(normalize(dirOS)));
+                        normalWS = normalize(lerp(normalWS, sphereWS, _SphereNormalBlend));
+                    }
+                }
+                #endif
+
                 float3 viewDirWS = GetWorldSpaceNormalizeViewDir(IN.positionWS);
                 float2 screenUV  = GetNormalizedScreenSpaceUV(IN.positionCS);
 

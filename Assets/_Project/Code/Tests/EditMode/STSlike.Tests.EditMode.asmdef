@@ -4,6 +4,7 @@
     "references": [
         "STSlike.Domain",
         "STSlike.Data",
+        "STSlike.Infrastructure",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

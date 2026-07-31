@@ -33,14 +33,14 @@ Material:
     m_Floats:
     - _AlphaClip: 0
     - _Cutoff: 0.5
-    - _DepthBias: 0.00109
+    - _DepthBias: 0.001
     - _FadeEnd: 0
     - _FadeStart: 0
     - _OutlineWidth: 0.0135
     - _OutlineWidthPx: 3
     - _SmoothNormal: 1
     - _UseSmoothNormals: 0
-    - _WidthWorld: 0.001
+    - _WidthWorld: 0.002
     - _WidthWorldSpace: 1
     m_Colors:
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}

@@ -1,0 +1,16 @@
+{
+    "name": "STSlike.Infrastructure",
+    "rootNamespace": "STSlike.Infrastructure",
+    "references": [
+        "STSlike.Domain"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

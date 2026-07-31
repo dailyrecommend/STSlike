@@ -7,9 +7,15 @@ using STSlike.Data;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Events;
+using STSlike.Domain.Progression;
 using STSlike.Domain.Randomness;
 using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
+using STSlike.Infrastructure.Persistence;
+using STSlike.Presentation.UI;
+#if STSLIKE_SQLITE
+using STSlike.Infrastructure.Persistence.Sqlite;
+#endif
 
 namespace STSlike.Presentation
 {
@@ -28,9 +34,11 @@ namespace STSlike.Presentation
         }
 
         [Header("Run")]
+        [SerializeField] private string characterId = "albino";
         [SerializeField] private int seed = 0;
         [SerializeField] private int totalEncounters = 3;
         [SerializeField] private int cardsPerTurn = 5;
+        [SerializeField] private int startingCredits = 100;
 
         [Header("Player")]
         [SerializeField] private int playerHp = 70;
@@ -67,8 +75,31 @@ namespace STSlike.Presentation
                 {
                     var deck = new Deck(resolver.Resolve<IRng>());
                     var player = new PlayerState("Player", playerHp, maxEnergy, deck);
-                    return new RunContext(totalEncounters, player, BuildStarterDeck());
+                    return new RunContext(totalEncounters, player, BuildStarterDeck(),
+                        seed, startingCredits, characterId);
                 },
+                Lifetime.Singleton);
+
+            // Meta progression. The repositories are interfaces, so the storage
+            // swap lives here and nowhere else — no game code knows which one
+            // it is talking to. Define STSLIKE_SQLITE once sqlite-net-pcl is
+            // installed; without it the game still runs, just without a file.
+#if STSLIKE_SQLITE
+            builder.Register(_ => SqliteDatabase.OpenDefault(), Lifetime.Singleton);
+            builder.Register<IRunHistoryRepository, SqliteRunHistoryRepository>(Lifetime.Singleton);
+            builder.Register<ICardStatsRepository, SqliteCardStatsRepository>(Lifetime.Singleton);
+            builder.Register<IRunSaveRepository, SqliteRunSaveRepository>(Lifetime.Singleton);
+#else
+            builder.Register<IRunHistoryRepository, InMemoryRunHistoryRepository>(Lifetime.Singleton);
+            builder.Register<ICardStatsRepository, InMemoryCardStatsRepository>(Lifetime.Singleton);
+            builder.Register<IRunSaveRepository, InMemoryRunSaveRepository>(Lifetime.Singleton);
+#endif
+            builder.Register(resolver => new ProgressionRecorder(
+                    resolver.Resolve<IEventBus>(),
+                    resolver.Resolve<RunContext>(),
+                    resolver.Resolve<IRunHistoryRepository>(),
+                    resolver.Resolve<ICardStatsRepository>(),
+                    characterId),
                 Lifetime.Singleton);
 
             builder.Register<IRewardGenerator>(resolver => new RewardGenerator(
@@ -91,9 +122,19 @@ namespace STSlike.Presentation
 
             builder.RegisterEntryPoint<CombatBootEntryPoint>();
 
+            // The one seam the visuals talk to.
+            builder.Register<CombatPresenter>(Lifetime.Singleton);
+
             // Inject the harness that is already placed in the scene, so its
             // inspector values (font size, panel width, log pacing) take effect.
             builder.RegisterComponentInHierarchy<CombatDebugView>();
+
+            // Real UI binders. Each is optional: RegisterComponentInHierarchy
+            // finds them if you have placed them, and the game runs fine before
+            // you do.
+            builder.RegisterComponentInHierarchy<CombatHudBinder>();
+            builder.RegisterComponentInHierarchy<HandViewBinder>();
+            builder.RegisterComponentInHierarchy<RewardViewBinder>();
         }
 
         private List<ICardDefinition> BuildRewardPool()
