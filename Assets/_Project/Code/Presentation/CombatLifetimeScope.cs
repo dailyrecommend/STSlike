@@ -33,16 +33,19 @@ namespace STSlike.Presentation
             public int count;
         }
 
+        [Header("Character (leave empty to use the fallback numbers below)")]
+        [SerializeField] private CharacterData character;
+
         [Header("Run")]
-        [SerializeField] private string characterId = "albino";
         [SerializeField] private int seed = 0;
         [SerializeField] private int totalEncounters = 3;
         [SerializeField] private int cardsPerTurn = 5;
-        [SerializeField] private int startingCredits = 100;
 
-        [Header("Player")]
+        [Header("Fallback Player Settings (ignored when a Character is assigned)")]
+        [SerializeField] private string characterId = "albino";
         [SerializeField] private int playerHp = 70;
         [SerializeField] private int maxEnergy = 3;
+        [SerializeField] private int startingCredits = 100;
 
         [Header("Enemy")]
         [SerializeField] private int enemyHp = 45;
@@ -74,11 +77,18 @@ namespace STSlike.Presentation
             builder.Register(resolver =>
                 {
                     var deck = new Deck(resolver.Resolve<IRng>());
-                    var player = new PlayerState("Player", playerHp, maxEnergy, deck);
+                    var player = new PlayerState("Player", ResolvedMaxHp, ResolvedMaxEnergy, deck);
                     return new RunContext(totalEncounters, player, BuildStarterDeck(),
-                        seed, startingCredits, characterId);
+                        seed, ResolvedStartingCredits, ResolvedCharacterId);
                 },
                 Lifetime.Singleton);
+
+            // Art for the HUD. Always registered — with empty sprites when no
+            // character asset is assigned yet — so binders never fail to resolve.
+            builder.RegisterInstance(new CharacterPresentation(
+                ResolvedCharacterId,
+                character != null ? character.Icon : null,
+                character != null ? character.EnergyIcon : null));
 
             // Meta progression. The repositories are interfaces, so the storage
             // swap lives here and nowhere else — no game code knows which one
@@ -125,17 +135,32 @@ namespace STSlike.Presentation
             // The one seam the visuals talk to.
             builder.Register<CombatPresenter>(Lifetime.Singleton);
 
-            // Inject the harness that is already placed in the scene, so its
-            // inspector values (font size, panel width, log pacing) take effect.
-            builder.RegisterComponentInHierarchy<CombatDebugView>();
-
-            // Real UI binders. Each is optional: RegisterComponentInHierarchy
-            // finds them if you have placed them, and the game runs fine before
-            // you do.
-            builder.RegisterComponentInHierarchy<CombatHudBinder>();
-            builder.RegisterComponentInHierarchy<HandViewBinder>();
-            builder.RegisterComponentInHierarchy<RewardViewBinder>();
+            // Scene components. RegisterComponentInHierarchy throws when the
+            // component is absent, so each is registered only if it is actually
+            // placed — that way the UI can be built up one binder at a time.
+            RegisterIfPresent<CombatDebugView>(builder);
+            RegisterIfPresent<CombatHudBinder>(builder);
+            RegisterIfPresent<HandViewBinder>(builder);
+            RegisterIfPresent<RewardViewBinder>(builder);
         }
+
+        /// <summary>
+        /// Registers a scene component only when it exists. Inactive objects are
+        /// included on purpose: panels such as the reward screen normally start
+        /// switched off, and they still need to be injected.
+        /// </summary>
+        private static void RegisterIfPresent<T>(IContainerBuilder builder) where T : MonoBehaviour
+        {
+            if (FindFirstObjectByType<T>(FindObjectsInactive.Include) != null)
+                builder.RegisterComponentInHierarchy<T>();
+        }
+
+        // A character asset wins when assigned; the loose fields stay so the
+        // scene still runs before one has been authored.
+        private string ResolvedCharacterId => character != null ? character.Id : characterId;
+        private int ResolvedMaxHp => character != null ? character.MaxHp : playerHp;
+        private int ResolvedMaxEnergy => character != null ? character.MaxEnergy : maxEnergy;
+        private int ResolvedStartingCredits => character != null ? character.StartingCredits : startingCredits;
 
         private List<ICardDefinition> BuildRewardPool()
         {
@@ -151,6 +176,14 @@ namespace STSlike.Presentation
         private List<Card> BuildStarterDeck()
         {
             var cards = new List<Card>();
+
+            if (character != null)
+            {
+                foreach (ICardDefinition definition in character.StartingDeck)
+                    cards.Add(new Card(definition));
+                return cards;
+            }
+
             foreach (DeckEntry entry in starterDeck)
             {
                 if (entry.card == null)

@@ -16,7 +16,7 @@ namespace STSlike.Presentation.UI
     public sealed class CombatHudBinder : MonoBehaviour
     {
         [Header("Top Bar")]
-        [SerializeField] private TMP_Text characterIdText;
+        [SerializeField] private Image characterIcon;
         [SerializeField] private TMP_Text floorText;
         [SerializeField] private TMP_Text creditsText;
         [SerializeField] private TMP_Text deckCountText;
@@ -31,6 +31,7 @@ namespace STSlike.Presentation.UI
         [SerializeField] private TMP_Text playerBlockText;
         [SerializeField] private GameObject playerBlockRoot;
         [SerializeField] private TMP_Text energyText;
+        [SerializeField] private Image energyIcon;
 
         [Header("Enemy")]
         [SerializeField] private TMP_Text enemyNameText;
@@ -51,12 +52,16 @@ namespace STSlike.Presentation.UI
         [SerializeField] private Button newRunButton;
 
         private CombatPresenter _presenter;
+        private CharacterPresentation _character;
 
         [Inject]
-        public void Construct(CombatPresenter presenter)
+        public void Construct(CombatPresenter presenter, CharacterPresentation character)
         {
             _presenter = presenter;
+            _character = character;
             _presenter.Changed += Refresh;
+
+            ApplyCharacterArt();
 
             if (endTurnButton != null)
                 endTurnButton.onClick.AddListener(() => _presenter.EndTurn());
@@ -72,28 +77,50 @@ namespace STSlike.Presentation.UI
                 _presenter.Changed -= Refresh;
         }
 
+        // Art is set once: it belongs to the character, not to combat state.
+        private void ApplyCharacterArt()
+        {
+            if (_character == null)
+                return;
+
+            SetSprite(characterIcon, _character.Icon);
+            SetSprite(energyIcon, _character.EnergyIcon);
+        }
+
+        private static void SetSprite(Image target, Sprite sprite)
+        {
+            if (target == null)
+                return;
+
+            if (sprite != null)
+                target.sprite = sprite;
+
+            // Hide the slot entirely when there is no art yet, instead of
+            // leaving Unity's white placeholder square on screen.
+            target.enabled = sprite != null;
+        }
+
         private void Refresh()
         {
             if (_presenter == null)
                 return;
 
             RunView run = _presenter.Run;
-            SetText(characterIdText, run.CharacterId);
-            SetText(floorText, $"{run.Floor} / {run.TotalFloors}");
+            SetText(floorText, run.Floor.ToString());
             SetText(creditsText, run.Credits.ToString());
             SetText(deckCountText, run.DeckCount.ToString());
 
             PlayerView player = _presenter.Player;
-            SetText(playerHpText, $"{player.Hp} / {player.MaxHp}");
+            SetText(playerHpText, $"{player.Hp}/{player.MaxHp}");
             SetFill(playerHpFill, player.HpFraction);
-            SetText(energyText, $"{player.Energy} / {player.MaxEnergy}");
+            SetText(energyText, $"{player.Energy}/{player.MaxEnergy}");
             SetBlock(playerBlockRoot, playerBlockText, player.Block);
             SetText(drawCountText, player.DrawCount.ToString());
             SetText(discardCountText, player.DiscardCount.ToString());
 
             EnemyView enemy = _presenter.Enemy;
             SetText(enemyNameText, enemy.Name);
-            SetText(enemyHpText, $"{enemy.Hp} / {enemy.MaxHp}");
+            SetText(enemyHpText, $"{enemy.Hp}/{enemy.MaxHp}");
             SetFill(enemyHpFill, enemy.HpFraction);
             SetBlock(enemyBlockRoot, enemyBlockText, enemy.Block);
             SetText(enemyIntentText, enemy.IntentAmount > 0
