@@ -14,6 +14,8 @@ namespace STSlike.Domain.Cards
     {
         string Id { get; }
         int Cost { get; }
+        CardType Type { get; }
+        CardRarity Rarity { get; }
         IReadOnlyList<ICardEffect> Effects { get; }
     }
 }

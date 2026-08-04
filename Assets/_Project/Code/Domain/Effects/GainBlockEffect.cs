@@ -5,9 +5,11 @@ namespace STSlike.Domain.Effects
 {
     /// <summary>Grants block to the caster, then announces it on the bus.</summary>
     [Serializable]
-    public sealed class GainBlockEffect : ICardEffect
+    public sealed class GainBlockEffect : ICardEffect, IDescribableEffect
     {
         public int amount;
+
+        public int DisplayValue => amount;
 
         public GainBlockEffect() { }
 

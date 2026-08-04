@@ -19,6 +19,19 @@ namespace STSlike.Domain.Combat
         public CardPlayedEvent(Card card) => Card = card;
     }
 
+    /// <summary>
+    /// A card has fully resolved and left the hand for the discard pile.
+    ///
+    /// Separate from <see cref="CardPlayedEvent"/>, which fires before the
+    /// effects run: anything that reads the hand — the hand UI above all — must
+    /// wait for this one, or it will still see the card that was just played.
+    /// </summary>
+    public readonly struct CardResolvedEvent
+    {
+        public readonly Card Card;
+        public CardResolvedEvent(Card card) => Card = card;
+    }
+
     /// <summary>Combat has ended.</summary>
     public readonly struct CombatEndedEvent
     {

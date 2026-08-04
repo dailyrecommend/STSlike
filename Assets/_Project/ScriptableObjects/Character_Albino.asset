@@ -20,6 +20,6 @@ MonoBehaviour:
   startingCredits: 100
   startingDeck:
   - card: {fileID: 11400000, guid: 3356d789a553b8349ab9a5944cf1231e, type: 2}
-    count: 5
+    count: 20
   - card: {fileID: 11400000, guid: 7350e71ec3f90d340913c0930e970fe3, type: 2}
-    count: 5
+    count: 20

@@ -14,24 +14,52 @@ namespace STSlike.Data
     [CreateAssetMenu(fileName = "Card_New", menuName = "STSlike/Card", order = 0)]
     public sealed class CardData : ScriptableObject, ICardDefinition
     {
+        [Header("Rules")]
         [SerializeField] private string id;
         [SerializeField, Min(0)] private int cost;
+        [SerializeField] private CardType type = CardType.Attack;
+        [SerializeField] private CardRarity rarity = CardRarity.Common;
+
         [SerializeReference, SerializeReferenceDropdown]
         private List<ICardEffect> effects = new List<ICardEffect>();
 
+        [Header("Presentation")]
+        [SerializeField] private string displayName;
+
+        [SerializeField, TextArea(2, 4)]
+        [Tooltip("Use {0}, {1}... for the effect values, in the order the effects are listed. " +
+                 "Example: \"Deal {0} damage.\" The numbers then follow the card automatically " +
+                 "when it is rebalanced or upgraded.")]
+        private string description;
+
+        [SerializeField] private Sprite artwork;
+
         public string Id => id;
         public int Cost => cost;
+        public CardType Type => type;
+        public CardRarity Rarity => rarity;
         public IReadOnlyList<ICardEffect> Effects => effects;
+
+        /// <summary>Falls back to the id so an unfinished card is still readable.</summary>
+        public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? id : displayName;
+
+        /// <summary>Raw template; the presenter fills in the numbers.</summary>
+        public string DescriptionTemplate => description;
+
+        public Sprite Artwork => artwork;
 
         /// <summary>
         /// Programmatic factory for tests and editor tooling. Authored assets
         /// are normally created via the Create menu and filled in the inspector.
         /// </summary>
-        public static CardData Create(string id, int cost, List<ICardEffect> effects)
+        public static CardData Create(string id, int cost, List<ICardEffect> effects,
+            CardType type = CardType.Attack, CardRarity rarity = CardRarity.Common)
         {
             var data = CreateInstance<CardData>();
             data.id = id;
             data.cost = cost;
+            data.type = type;
+            data.rarity = rarity;
             data.effects = effects ?? new List<ICardEffect>();
             return data;
         }

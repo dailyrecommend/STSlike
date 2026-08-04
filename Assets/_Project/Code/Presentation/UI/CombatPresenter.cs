@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
+using STSlike.Data;
 using STSlike.Domain.Cards;
+using STSlike.Domain.Effects;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
 using STSlike.Domain.Run;
@@ -57,6 +60,7 @@ namespace STSlike.Presentation.UI
             _bus.Subscribe<EncounterStartedEvent>(OnEncounterStarted);
             _bus.Subscribe<PlayerTurnStartedEvent>(OnPlayerTurnStarted);
             _bus.Subscribe<CardPlayedEvent>(OnCardPlayed);
+            _bus.Subscribe<CardResolvedEvent>(OnAnyChange);
             _bus.Subscribe<DamageDealtEvent>(OnDamageDealt);
             _bus.Subscribe<BlockGainedEvent>(OnBlockGained);
             _bus.Subscribe<PlayerTurnEndedEvent>(OnAnyChange);
@@ -71,6 +75,7 @@ namespace STSlike.Presentation.UI
             _bus.Unsubscribe<EncounterStartedEvent>(OnEncounterStarted);
             _bus.Unsubscribe<PlayerTurnStartedEvent>(OnPlayerTurnStarted);
             _bus.Unsubscribe<CardPlayedEvent>(OnCardPlayed);
+            _bus.Unsubscribe<CardResolvedEvent>(OnAnyChange);
             _bus.Unsubscribe<DamageDealtEvent>(OnDamageDealt);
             _bus.Unsubscribe<BlockGainedEvent>(OnBlockGained);
             _bus.Unsubscribe<PlayerTurnEndedEvent>(OnAnyChange);
@@ -88,6 +93,9 @@ namespace STSlike.Presentation.UI
         /// <summary>False while a reward screen is up or the run has ended.</summary>
         public bool IsInCombat =>
             !IsAwaitingReward && !IsRunOver && _runner.Current != null && !_runner.Current.Context.IsOver;
+
+        /// <summary>Current turn of the ongoing fight, counting from 1. Zero between fights.</summary>
+        public int Turn => _runner.Current?.Context.TurnNumber ?? 0;
 
         public RunView Run
         {
@@ -242,18 +250,68 @@ namespace STSlike.Presentation.UI
 
         private void RaiseChanged() => Changed?.Invoke();
 
-        // Inspection lists are not playable, so HandIndex is -1: a view built
-        // from these can never be wired to PlayCard by accident.
+        // Inspection lists carry HandIndex -1, so a view built from them can
+        // never be wired to PlayCard by accident. They are still marked playable
+        // because that flag drives the "cannot afford" dimming — a card being
+        // browsed in a pile should look normal, not greyed out.
         private static List<CardView> Describe(IReadOnlyList<Card> cards, bool sorted)
         {
             var views = new List<CardView>(cards.Count);
             foreach (Card card in cards)
-                views.Add(new CardView(-1, card.Id, card.Cost, false));
+                views.Add(BuildCardView(card, -1, playable: true));
 
             if (sorted)
                 views.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
 
             return views;
+        }
+
+        private static CardView BuildCardView(Card card, int handIndex, bool playable)
+        {
+            // The definition at runtime is the authoring asset, so the display
+            // fields can be read straight off it. Definitions built in code
+            // (tests, generated cards) simply fall back to the id.
+            var data = card.Definition as CardData;
+
+            string name = data != null ? data.DisplayName : card.Id;
+            Sprite art = data != null ? data.Artwork : null;
+            string description = data != null
+                ? FormatDescription(data.DescriptionTemplate, card.Effects)
+                : string.Empty;
+
+            return new CardView(handIndex, card.Id, card.Cost, playable,
+                name, description, art, card.Definition.Type, card.Definition.Rarity);
+        }
+
+        /// <summary>
+        /// Fills "{0}" style placeholders with the effects' own numbers, in the
+        /// order the effects are listed. Keeping the text tied to the effects is
+        /// what stops a rebalanced or upgraded card from lying about itself.
+        /// </summary>
+        private static string FormatDescription(string template, IReadOnlyList<ICardEffect> effects)
+        {
+            if (string.IsNullOrEmpty(template))
+                return string.Empty;
+
+            var values = new List<object>();
+            foreach (ICardEffect effect in effects)
+            {
+                if (effect is IDescribableEffect describable)
+                    values.Add(describable.DisplayValue);
+            }
+
+            if (values.Count == 0)
+                return template;
+
+            try
+            {
+                return string.Format(template, values.ToArray());
+            }
+            catch (FormatException)
+            {
+                // A typo in the template must not take the card off the screen.
+                return template;
+            }
         }
 
         private void RebuildHand()
@@ -271,7 +329,7 @@ namespace STSlike.Presentation.UI
             {
                 Card card = cards[i];
                 _handCards.Add(card);
-                _hand.Add(new CardView(i, card.Id, card.Cost, player.CanAfford(card.Cost)));
+                _hand.Add(BuildCardView(card, i, player.CanAfford(card.Cost)));
             }
         }
 

@@ -1,3 +1,6 @@
+using UnityEngine;
+using STSlike.Domain.Cards;
+
 namespace STSlike.Presentation.UI
 {
     /// <summary>
@@ -103,12 +106,28 @@ namespace STSlike.Presentation.UI
         public readonly int Cost;
         public readonly bool IsPlayable;
 
-        public CardView(int handIndex, string id, int cost, bool isPlayable)
+        /// <summary>Display name, already falling back to the id if unauthored.</summary>
+        public readonly string Name;
+
+        /// <summary>Description with the effect numbers already filled in.</summary>
+        public readonly string Description;
+
+        public readonly Sprite Artwork;
+        public readonly CardType Type;
+        public readonly CardRarity Rarity;
+
+        public CardView(int handIndex, string id, int cost, bool isPlayable,
+            string name, string description, Sprite artwork, CardType type, CardRarity rarity)
         {
             HandIndex = handIndex;
             Id = id;
             Cost = cost;
             IsPlayable = isPlayable;
+            Name = name;
+            Description = description;
+            Artwork = artwork;
+            Type = type;
+            Rarity = rarity;
         }
     }
 

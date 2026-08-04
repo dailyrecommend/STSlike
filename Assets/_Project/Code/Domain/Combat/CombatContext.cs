@@ -15,6 +15,13 @@ namespace STSlike.Domain.Combat
         public EnemyState Enemy { get; }
         public CombatPhase Phase { get; internal set; }
 
+        /// <summary>
+        /// Which player turn this is, counting from 1. Zero means the fight has
+        /// been set up but the first turn has not begun. Resets every combat —
+        /// it is a fight-scoped number, not a run-scoped one.
+        /// </summary>
+        public int TurnNumber { get; internal set; }
+
         public bool IsOver => Phase == CombatPhase.Won || Phase == CombatPhase.Lost;
 
         public CombatContext(PlayerState player, EnemyState enemy)

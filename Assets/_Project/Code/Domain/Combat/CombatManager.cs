@@ -76,6 +76,7 @@ namespace STSlike.Domain.Combat
             player.Deck.DiscardFromHand(card);
 
             CheckCombatEnd();
+            _bus.Publish(new CardResolvedEvent(card));
             PublishEndedIfOver();
             return true;
         }
@@ -101,6 +102,7 @@ namespace STSlike.Domain.Combat
         private void BeginPlayerTurn()
         {
             PlayerState player = _context.Player;
+            _context.TurnNumber++;
             player.ResetBlock();          // block does not carry over turns
             player.RefillEnergy();
             player.Deck.DrawCards(_cardsPerTurn);

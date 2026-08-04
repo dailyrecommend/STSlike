@@ -134,6 +134,7 @@ namespace STSlike.Presentation
 
             // The one seam the visuals talk to.
             builder.Register<CombatPresenter>(Lifetime.Singleton);
+            builder.Register<CardHoverChannel>(Lifetime.Singleton);
 
             // Scene components. RegisterComponentInHierarchy throws when the
             // component is absent, so each is registered only if it is actually
@@ -142,6 +143,9 @@ namespace STSlike.Presentation
             RegisterIfPresent<CombatHudBinder>(builder);
             RegisterIfPresent<HandViewBinder>(builder);
             RegisterIfPresent<RewardViewBinder>(builder);
+            RegisterIfPresent<CardTooltipBinder>(builder);
+            RegisterIfPresent<HandCardLayout>(builder);
+            RegisterIfPresent<CardListPopupBinder>(builder);
         }
 
         /// <summary>

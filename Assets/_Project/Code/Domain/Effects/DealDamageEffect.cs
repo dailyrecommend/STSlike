@@ -5,9 +5,11 @@ namespace STSlike.Domain.Effects
 {
     /// <summary>Deals damage to the target, then announces it on the bus.</summary>
     [Serializable]
-    public sealed class DealDamageEffect : ICardEffect
+    public sealed class DealDamageEffect : ICardEffect, IDescribableEffect
     {
         public int amount;
+
+        public int DisplayValue => amount;
 
         public DealDamageEffect() { }
 

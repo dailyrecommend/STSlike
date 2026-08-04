@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using STSlike.Domain.Cards;
 
 namespace STSlike.Presentation.UI
 {
@@ -19,11 +20,13 @@ namespace STSlike.Presentation.UI
 
         private readonly List<CardViewBinder> _spawned = new List<CardViewBinder>();
         private CombatPresenter _presenter;
+        private CardHoverChannel _hover;
 
         [Inject]
-        public void Construct(CombatPresenter presenter)
+        public void Construct(CombatPresenter presenter, CardHoverChannel hover)
         {
             _presenter = presenter;
+            _hover = hover;
             _presenter.Changed += Refresh;
 
             if (skipButton != null)
@@ -50,7 +53,11 @@ namespace STSlike.Presentation.UI
                 headlineText.text = rewards.Count > 0 ? "Choose a reward" : string.Empty;
 
             while (_spawned.Count < rewards.Count)
-                _spawned.Add(Instantiate(optionPrefab, parent));
+            {
+                CardViewBinder instance = Instantiate(optionPrefab, parent);
+                instance.SetHoverChannel(_hover);
+                _spawned.Add(instance);
+            }
 
             for (int i = 0; i < _spawned.Count; i++)
             {
@@ -67,9 +74,10 @@ namespace STSlike.Presentation.UI
                 // Reward options reuse the card prefab, so a heal is described
                 // in the same slots rather than needing its own prefab.
                 string label = reward.Kind == RewardKind.AddCard ? reward.CardId : $"Heal +{reward.Amount}";
-                var asCard = new CardView(optionIndex, label, reward.CardCost, true);
+                var asCard = new CardView(optionIndex, label, reward.CardCost, true,
+                    label, string.Empty, null, CardType.Skill, CardRarity.Common);
 
-                binder.Bind(asCard, null, () => _presenter.ChooseReward(optionIndex));
+                binder.Bind(asCard, () => _presenter.ChooseReward(optionIndex));
             }
         }
     }

@@ -52,6 +52,64 @@ namespace STSlike.Tests.EditMode
             Assert.AreEqual(CombatPhase.PlayerTurn, ctx.Phase);
         }
 
+        // The hand UI redraws from this event, so the card must already be gone
+        // by the time it fires — otherwise a played card lingers on screen.
+        [Test]
+        public void CardResolved_FiresAfterTheCardHasLeftTheHand()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var enemy = new EnemyState("Enemy", 50, 5);
+            var ctx = new CombatContext(player, enemy);
+            var bus = new EventBus();
+
+            bool observed = false;
+            bool stillInHand = true;
+            int handCountWhenResolved = -1;
+
+            var mgr = new CombatManager(ctx, bus, 5);
+            mgr.StartCombat(DeckOf(10, Strike));
+
+            Card played = FirstInHand(ctx);
+            bus.Subscribe<CardResolvedEvent>(e =>
+            {
+                observed = true;
+                stillInHand = player.Deck.Hand.Cards.Contains(played);
+                handCountWhenResolved = player.Deck.Hand.Count;
+            });
+
+            mgr.PlayCard(played, ctx.Enemy);
+
+            Assert.IsTrue(observed, "CardResolvedEvent was never published.");
+            Assert.IsFalse(stillInHand, "The card was still in hand when the UI was told to redraw.");
+            Assert.AreEqual(4, handCountWhenResolved);
+        }
+
+        [Test]
+        public void TurnNumber_StartsAtOne_AndCountsPlayerTurns()
+        {
+            var (mgr, ctx) = NewCombat(DeckOf(20, Strike), enemyAttack: 1, playerHp: 80);
+
+            Assert.AreEqual(1, ctx.TurnNumber); // opening turn
+
+            mgr.EndTurn();
+            Assert.AreEqual(2, ctx.TurnNumber);
+
+            mgr.EndTurn();
+            Assert.AreEqual(3, ctx.TurnNumber);
+        }
+
+        [Test]
+        public void TurnNumber_DoesNotAdvance_WhenCombatEnds()
+        {
+            // Player dies on the enemy's swing, so no new turn should begin.
+            var (mgr, ctx) = NewCombat(DeckOf(10, Strike), enemyAttack: 10, playerHp: 8);
+
+            mgr.EndTurn();
+
+            Assert.AreEqual(CombatPhase.Lost, ctx.Phase);
+            Assert.AreEqual(1, ctx.TurnNumber);
+        }
+
         [Test]
         public void PlayingCards_RecordsCommandsInHistory()
         {

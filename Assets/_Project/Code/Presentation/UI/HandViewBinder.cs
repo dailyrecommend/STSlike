@@ -19,11 +19,13 @@ namespace STSlike.Presentation.UI
 
         private readonly List<CardViewBinder> _spawned = new List<CardViewBinder>();
         private CombatPresenter _presenter;
+        private CardHoverChannel _hover;
 
         [Inject]
-        public void Construct(CombatPresenter presenter)
+        public void Construct(CombatPresenter presenter, CardHoverChannel hover)
         {
             _presenter = presenter;
+            _hover = hover;
             _presenter.Changed += Refresh;
             Refresh();
         }
@@ -46,6 +48,7 @@ namespace STSlike.Presentation.UI
             while (_spawned.Count < hand.Count)
             {
                 CardViewBinder instance = Instantiate(cardPrefab, parent);
+                instance.SetHoverChannel(_hover);
                 _spawned.Add(instance);
             }
 
@@ -60,7 +63,7 @@ namespace STSlike.Presentation.UI
 
                 CardView view = hand[i];
                 int handIndex = view.HandIndex;
-                binder.Bind(view, null, () => _presenter.PlayCard(handIndex));
+                binder.Bind(view, () => _presenter.PlayCard(handIndex));
             }
         }
     }

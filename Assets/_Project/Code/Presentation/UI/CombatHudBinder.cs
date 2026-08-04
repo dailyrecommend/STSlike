@@ -49,6 +49,7 @@ namespace STSlike.Presentation.UI
 
         [Header("Buttons")]
         [SerializeField] private Button endTurnButton;
+        [SerializeField] private TMP_Text turnText;
         [SerializeField] private Button newRunButton;
 
         private CombatPresenter _presenter;
@@ -117,6 +118,7 @@ namespace STSlike.Presentation.UI
             SetBlock(playerBlockRoot, playerBlockText, player.Block);
             SetText(drawCountText, player.DrawCount.ToString());
             SetText(discardCountText, player.DiscardCount.ToString());
+            SetText(turnText, _presenter.Turn.ToString());
 
             EnemyView enemy = _presenter.Enemy;
             SetText(enemyNameText, enemy.Name);

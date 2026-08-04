@@ -14,8 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: STSlike.Data::STSlike.Data.CardData
   id: strike
   cost: 1
+  type: 0
+  rarity: 0
   effects:
   - rid: 7859427291476262971
+  displayName: Strike
+  description: Deal {0}.
+  artwork: {fileID: 0}
   references:
     version: 2
     RefIds:
