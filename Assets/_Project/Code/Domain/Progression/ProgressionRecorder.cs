@@ -72,8 +72,8 @@ namespace STSlike.Domain.Progression
                 characterId: _characterId,
                 seed: _run.Seed,
                 playerWon: e.PlayerWon,
-                encountersCleared: e.EncountersCleared,
-                totalEncounters: _run.TotalEncounters,
+                encountersCleared: e.FloorsCleared,
+                totalEncounters: _run.TotalFloors,
                 deckSize: _run.Cards.Count,
                 completedAtUtc: _clock()));
 

@@ -52,7 +52,12 @@ namespace STSlike.Presentation.UI
         private readonly List<CardViewBinder> _spawned = new List<CardViewBinder>();
         private CombatPresenter _presenter;
         private CardHoverChannel _hover;
+        private PanelToggle _panel;
         private Source _source = Source.None;
+
+        // Created on demand rather than in Awake: VContainer injects from the
+        // LifetimeScope's own Awake, which can run before this component's.
+        private PanelToggle Panel => _panel ??= new PanelToggle(root, gameObject);
 
         [Inject]
         public void Construct(CombatPresenter presenter, CardHoverChannel hover)
@@ -200,12 +205,7 @@ namespace STSlike.Presentation.UI
             }
         }
 
-        private void SetPanelActive(bool active)
-        {
-            GameObject panel = root != null ? root : gameObject;
-            if (panel.activeSelf != active)
-                panel.SetActive(active);
-        }
+        private void SetPanelActive(bool active) => Panel.Set(active);
 
         private static void SetText(TMP_Text target, string value)
         {

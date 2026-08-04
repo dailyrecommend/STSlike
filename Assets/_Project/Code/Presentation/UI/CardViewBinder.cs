@@ -115,12 +115,9 @@ namespace STSlike.Presentation.UI
             SetText(nameText, view.Name);
             SetText(costText, view.Cost.ToString());
 
-            if (artwork != null)
-            {
+            // Keep the prefab's placeholder art when a card has none of its own.
+            if (artwork != null && view.Artwork != null)
                 artwork.sprite = view.Artwork;
-                // Hide the slot rather than showing Unity's white square.
-                artwork.enabled = view.Artwork != null;
-            }
 
             ApplyTypeStyle(view.Type);
             ApplyRarityStyle(view.Rarity);

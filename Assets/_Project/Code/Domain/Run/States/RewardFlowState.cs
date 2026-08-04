@@ -7,9 +7,9 @@ using STSlike.Domain.StateMachines;
 namespace STSlike.Domain.Run.States
 {
     /// <summary>
-    /// Between encounters: offers rewards and waits for the player to take one
-    /// (or skip) before advancing. The options are generated once on Enter so
-    /// the offer cannot be rerolled by looking at it again.
+    /// After a fight: offers rewards and waits for the player to take one (or
+    /// skip) before returning to the map. The options are generated once on
+    /// Enter so the offer cannot be rerolled by looking at it again.
     /// </summary>
     public sealed class RewardFlowState : IState
     {
@@ -34,12 +34,12 @@ namespace STSlike.Domain.Run.States
         public void Enter()
         {
             Options = _generator.Generate(_run);
-            _bus.Publish(new RewardOfferedEvent(_run.CurrentEncounter));
+            _bus.Publish(new RewardOfferedEvent(_run.Floor));
         }
 
         public void Exit() { }
 
-        /// <summary>Takes the reward at <paramref name="index"/> and moves on.</summary>
+        /// <summary>Takes the reward at <paramref name="index"/> and returns to the map.</summary>
         public void Choose(int index)
         {
             if (index < 0 || index >= Options.Count)
@@ -47,17 +47,16 @@ namespace STSlike.Domain.Run.States
 
             IRunReward chosen = Options[index];
             chosen.Apply(_run);
-            _bus.Publish(new RewardTakenEvent(_run.CurrentEncounter, chosen));
-            Advance();
+            _bus.Publish(new RewardTakenEvent(_run.Floor, chosen));
+            BackToMap();
         }
 
-        /// <summary>Declines every option and moves on.</summary>
-        public void Skip() => Advance();
+        /// <summary>Declines every option and returns to the map.</summary>
+        public void Skip() => BackToMap();
 
-        private void Advance()
+        private void BackToMap()
         {
-            _run.AdvanceEncounter();
-            _machine.ChangeState(new CombatFlowState(_machine, _bus, _launcher, _run, _generator));
+            _machine.ChangeState(new MapSelectionFlowState(_machine, _bus, _launcher, _run, _generator));
         }
     }
 }

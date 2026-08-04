@@ -81,6 +81,23 @@ namespace STSlike.Domain.Combat
             return true;
         }
 
+        /// <summary>
+        /// Ends the fight immediately with the given result.
+        ///
+        /// A development aid for skipping past content while testing the run
+        /// flow. It goes through the same phase change and event as a real
+        /// finish, so everything downstream — rewards, the map, run history —
+        /// behaves exactly as it would have.
+        /// </summary>
+        public void ForceResolve(bool playerWon)
+        {
+            if (_context.IsOver)
+                return;
+
+            _context.Phase = playerWon ? CombatPhase.Won : CombatPhase.Lost;
+            PublishEndedIfOver();
+        }
+
         public void EndTurn()
         {
             if (_context.Phase != CombatPhase.PlayerTurn)

@@ -2,6 +2,10 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+using STSlike.Presentation.UI;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
 using STSlike.Domain.Progression;
@@ -22,22 +26,29 @@ namespace STSlike.Presentation
         [SerializeField] private float panelWidth = 780f;
         [SerializeField] private int stepDelayMs = 220;
 
+        [Header("Debug")]
+        [Tooltip("Skips whatever is on screen: wins the fight, declines the reward, " +
+                 "takes the first route. Development only.")]
+        [SerializeField] private bool skipHotkeyEnabled = true;
+
         private IEventBus _bus;
         private CombatRunner _runner;
         private RunFlow _flow;
         private CombatSequencer _sequencer;
         private IRunHistoryRepository _history;
+        private CombatPresenter _presenter;
         private readonly List<string> _log = new List<string>();
 
         [Inject]
         public void Construct(IEventBus bus, CombatRunner runner, RunFlow flow,
-            CombatSequencer sequencer, IRunHistoryRepository history)
+            CombatSequencer sequencer, IRunHistoryRepository history, CombatPresenter presenter)
         {
             _bus = bus;
             _runner = runner;
             _flow = flow;
             _sequencer = sequencer;
             _history = history;
+            _presenter = presenter;
 
             bus.Subscribe<RunStartedEvent>(OnRunStarted);
             bus.Subscribe<EncounterStartedEvent>(OnEncounterStarted);
@@ -71,17 +82,17 @@ namespace STSlike.Presentation
 
         private void OnRunStarted(RunStartedEvent e) => Step("=== run started ===");
         private void OnEncounterStarted(EncounterStartedEvent e) =>
-            Step($"— encounter {e.EncounterNumber}/{e.TotalEncounters} —");
+            Step($"— floor {e.Floor}/{e.TotalFloors} ({e.NodeType}) —");
         private void OnTurnStarted(PlayerTurnStartedEvent e) => Step("player turn started");
         private void OnCardPlayed(CardPlayedEvent e) => Step($"played: {e.Card.Id}");
         private void OnDamageDealt(DamageDealtEvent e) => Step($"    dmg {e.Amount} -> {e.Target.Name}");
         private void OnBlockGained(BlockGainedEvent e) => Step($"    block +{e.Amount} ({e.Actor.Name})");
         private void OnTurnEnded(PlayerTurnEndedEvent e) => Step("turn ended -> enemy acts");
         private void OnCombatEnded(CombatEndedEvent e) => Step(e.PlayerWon ? "combat won" : "combat lost");
-        private void OnRewardOffered(RewardOfferedEvent e) => Step($"reward offered (after {e.EncounterNumber})");
+        private void OnRewardOffered(RewardOfferedEvent e) => Step($"reward offered (floor {e.Floor})");
         private void OnRewardTaken(RewardTakenEvent e) => Step("reward taken");
         private void OnRunEnded(RunEndedEvent e) =>
-            Step(e.PlayerWon ? $"RUN CLEARED ({e.EncountersCleared})" : $"RUN FAILED (cleared {e.EncountersCleared})");
+            Step(e.PlayerWon ? $"RUN CLEARED ({e.FloorsCleared})" : $"RUN FAILED (cleared {e.FloorsCleared})");
 
         // Each log line is a sequencer step: append it, then wait, so entries
         // reveal one at a time instead of all at once.
@@ -94,6 +105,29 @@ namespace STSlike.Presentation
                     _log.RemoveAt(0);
                 await UniTask.Delay(stepDelayMs);
             });
+        }
+
+        private void Update()
+        {
+            if (skipHotkeyEnabled && _presenter != null && SkipPressed())
+                _presenter.DebugSkip();
+        }
+
+        /// <summary>
+        /// Reads F10 from whichever input backend the project is set to, so the
+        /// shortcut keeps working regardless of that setting.
+        /// </summary>
+        private static bool SkipPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null)
+                return Keyboard.current.f10Key.wasPressedThisFrame;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetKeyDown(KeyCode.F10);
+#else
+            return false;
+#endif
         }
 
         private void OnGUI()
@@ -115,7 +149,7 @@ namespace STSlike.Presentation
             GUILayout.Space(8);
 
             RunContext run = _flow.Run;
-            GUILayout.Label($"Encounter {run.CurrentEncounter}/{run.TotalEncounters}", titleStyle);
+            GUILayout.Label($"Floor {run.Floor}/{run.TotalFloors}", titleStyle);
 
             // Run-persistent state: this HP carries between encounters.
             GUILayout.Label(
@@ -135,6 +169,28 @@ namespace STSlike.Presentation
                 GUILayout.Label(run.PlayerWon ? "RUN CLEARED" : "RUN FAILED", titleStyle);
                 if (GUILayout.Button("New Run", buttonStyle, GUILayout.Height(buttonHeight)))
                     _flow.Restart();
+            }
+            else if (_flow.IsChoosingNode)
+            {
+                GUILayout.Label("Choose your route", labelStyle);
+                GUILayout.Space(8);
+
+                foreach (var node in _flow.NodeChoices)
+                {
+                    string label = $"[{node.Type}]  floor {node.Row + 1}, lane {node.Column}";
+                    if (GUILayout.Button(label, buttonStyle, GUILayout.Height(buttonHeight)))
+                    {
+                        _flow.ChooseNode(node.Id);
+                        break; // the choices are gone this frame
+                    }
+                }
+            }
+            else if (_flow.IsVisitingNode)
+            {
+                GUILayout.Label($"HP {run.Player.CurrentHp}/{run.Player.MaxHp}   Credits {run.Credits}", labelStyle);
+                GUILayout.Space(8);
+                if (GUILayout.Button("Continue", buttonStyle, GUILayout.Height(buttonHeight)))
+                    _flow.ContinueFromNode();
             }
             else if (_flow.IsAwaitingReward)
             {

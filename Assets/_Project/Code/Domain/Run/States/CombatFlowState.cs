@@ -1,14 +1,15 @@
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
+using STSlike.Domain.Map;
 using STSlike.Domain.Run.Rewards;
 using STSlike.Domain.StateMachines;
 
 namespace STSlike.Domain.Run.States
 {
     /// <summary>
-    /// Fighting an encounter. Listens for the combat result only while it is the
-    /// active state (subscribe on Enter, unsubscribe on Exit), then routes to
-    /// reward, run-cleared, or game-over.
+    /// Fighting whatever stands on the current node. Listens for the result only
+    /// while it is the active state (subscribe on Enter, unsubscribe on Exit),
+    /// then routes to reward, the cleared run, or game over.
     /// </summary>
     public sealed class CombatFlowState : IState
     {
@@ -31,8 +32,10 @@ namespace STSlike.Domain.Run.States
         public void Enter()
         {
             _bus.Subscribe<CombatEndedEvent>(OnCombatEnded);
-            _bus.Publish(new EncounterStartedEvent(_run.CurrentEncounter, _run.TotalEncounters));
-            _launcher.StartCombat(_run.CurrentEncounter);
+
+            MapNodeType type = _run.CurrentNode != null ? _run.CurrentNode.Type : MapNodeType.Combat;
+            _bus.Publish(new EncounterStartedEvent(_run.Floor, _run.TotalFloors, type));
+            _launcher.StartCombat(new CombatRequest(_run.Floor, type));
         }
 
         public void Exit()
@@ -48,7 +51,9 @@ namespace STSlike.Domain.Run.States
                 return;
             }
 
-            if (_run.IsFinalEncounter)
+            // Beating the boss is the top of the act: there is nothing above it
+            // to award a reward for.
+            if (_run.IsOnBoss)
             {
                 _machine.ChangeState(new RunEndedFlowState(_bus, _run, playerWon: true));
                 return;

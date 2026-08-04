@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using STSlike.Domain.Cards;
+using STSlike.Domain.Map;
 
 namespace STSlike.Presentation.UI
 {
@@ -157,6 +160,44 @@ namespace STSlike.Presentation.UI
             CardId = cardId;
             CardCost = cardCost;
             Amount = amount;
+        }
+    }
+
+    /// <summary>
+    /// One node on the act map. Row and column are the grid slot — the map
+    /// screen turns those into positions, so the layout is the UI's decision
+    /// while the shape of the act stays the domain's.
+    /// </summary>
+    public readonly struct MapNodeView
+    {
+        public readonly int Id;
+        public readonly int Row;
+        public readonly int Column;
+        public readonly MapNodeType Type;
+
+        /// <summary>Can be travelled to right now.</summary>
+        public readonly bool IsReachable;
+
+        /// <summary>Where the player currently stands.</summary>
+        public readonly bool IsCurrent;
+
+        /// <summary>Already travelled through on this run.</summary>
+        public readonly bool IsVisited;
+
+        /// <summary>Ids of the nodes above this one, for drawing the routes.</summary>
+        public readonly IReadOnlyList<int> Next;
+
+        public MapNodeView(int id, int row, int column, MapNodeType type,
+            bool isReachable, bool isCurrent, bool isVisited, IReadOnlyList<int> next)
+        {
+            Id = id;
+            Row = row;
+            Column = column;
+            Type = type;
+            IsReachable = isReachable;
+            IsCurrent = isCurrent;
+            IsVisited = isVisited;
+            Next = next ?? Array.Empty<int>();
         }
     }
 

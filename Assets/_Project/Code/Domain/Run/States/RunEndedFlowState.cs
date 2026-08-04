@@ -25,9 +25,9 @@ namespace STSlike.Domain.Run.States
 
         public void Enter()
         {
-            // A cleared run finished its final encounter; a failed one cleared
-            // every encounter before the current.
-            int cleared = _playerWon ? _run.TotalEncounters : _run.CurrentEncounter - 1;
+            // A cleared run reached the top of the map; a failed one cleared
+            // every floor below the one it died on.
+            int cleared = _playerWon ? _run.TotalFloors : _run.FloorsCleared;
 
             _run.Finish(_playerWon);
             _bus.Publish(new RunEndedEvent(_playerWon, cleared));

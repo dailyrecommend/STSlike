@@ -88,17 +88,13 @@ namespace STSlike.Presentation.UI
             SetSprite(energyIcon, _character.EnergyIcon);
         }
 
+        // Only replaces the sprite when one was actually supplied. Switching the
+        // Image off for missing art would also throw away whatever placeholder
+        // was put in the prefab, which reads as a broken HUD.
         private static void SetSprite(Image target, Sprite sprite)
         {
-            if (target == null)
-                return;
-
-            if (sprite != null)
+            if (target != null && sprite != null)
                 target.sprite = sprite;
-
-            // Hide the slot entirely when there is no art yet, instead of
-            // leaving Unity's white placeholder square on screen.
-            target.enabled = sprite != null;
         }
 
         private void Refresh()

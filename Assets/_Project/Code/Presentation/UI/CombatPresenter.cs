@@ -6,6 +6,7 @@ using STSlike.Domain.Cards;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
+using STSlike.Domain.Map;
 using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
 
@@ -65,6 +66,9 @@ namespace STSlike.Presentation.UI
             _bus.Subscribe<BlockGainedEvent>(OnBlockGained);
             _bus.Subscribe<PlayerTurnEndedEvent>(OnAnyChange);
             _bus.Subscribe<CombatEndedEvent>(OnAnyChange);
+            _bus.Subscribe<MapChoiceOfferedEvent>(OnAnyChange);
+            _bus.Subscribe<NodeEnteredEvent>(OnAnyChange);
+            _bus.Subscribe<NodeVisitStartedEvent>(OnAnyChange);
             _bus.Subscribe<RewardOfferedEvent>(OnRewardOffered);
             _bus.Subscribe<RewardTakenEvent>(OnAnyChange);
             _bus.Subscribe<RunEndedEvent>(OnRunEnded);
@@ -80,6 +84,9 @@ namespace STSlike.Presentation.UI
             _bus.Unsubscribe<BlockGainedEvent>(OnBlockGained);
             _bus.Unsubscribe<PlayerTurnEndedEvent>(OnAnyChange);
             _bus.Unsubscribe<CombatEndedEvent>(OnAnyChange);
+            _bus.Unsubscribe<MapChoiceOfferedEvent>(OnAnyChange);
+            _bus.Unsubscribe<NodeEnteredEvent>(OnAnyChange);
+            _bus.Unsubscribe<NodeVisitStartedEvent>(OnAnyChange);
             _bus.Unsubscribe<RewardOfferedEvent>(OnRewardOffered);
             _bus.Unsubscribe<RewardTakenEvent>(OnAnyChange);
             _bus.Unsubscribe<RunEndedEvent>(OnRunEnded);
@@ -90,9 +97,58 @@ namespace STSlike.Presentation.UI
         public bool IsAwaitingReward => _flow.IsAwaitingReward;
         public bool IsRunOver => _flow.Run.IsFinished;
 
-        /// <summary>False while a reward screen is up or the run has ended.</summary>
+        /// <summary>True while the map screen is asking where to go next.</summary>
+        public bool IsChoosingNode => _flow.IsChoosingNode;
+
+        /// <summary>True at a rest, treasure or shop node waiting to be acknowledged.</summary>
+        public bool IsVisitingNode => _flow.IsVisitingNode;
+
+        /// <summary>False while any other screen is up or the run has ended.</summary>
         public bool IsInCombat =>
-            !IsAwaitingReward && !IsRunOver && _runner.Current != null && !_runner.Current.Context.IsOver;
+            !IsAwaitingReward && !IsChoosingNode && !IsVisitingNode && !IsRunOver
+            && _runner.Current != null && !_runner.Current.Context.IsOver;
+
+        /// <summary>The nodes that can be travelled to right now.</summary>
+        public IReadOnlyList<MapNodeView> NodeChoices
+        {
+            get
+            {
+                var views = new List<MapNodeView>();
+                foreach (MapNode node in _flow.NodeChoices)
+                    views.Add(new MapNodeView(node.Id, node.Row, node.Column, node.Type,
+                        true, false, false, node.Next));
+                return views;
+            }
+        }
+
+        /// <summary>Every node on the act map, for drawing the map screen.</summary>
+        public IReadOnlyList<MapNodeView> MapNodes
+        {
+            get
+            {
+                RunContext run = _flow.Run;
+                var reachable = new HashSet<int>();
+                foreach (MapNode node in _flow.NodeChoices)
+                    reachable.Add(node.Id);
+
+                var views = new List<MapNodeView>(run.Map.Nodes.Count);
+                foreach (MapNode node in run.Map.Nodes)
+                {
+                    views.Add(new MapNodeView(node.Id, node.Row, node.Column, node.Type,
+                        reachable.Contains(node.Id),
+                        run.CurrentNode != null && run.CurrentNode.Id == node.Id,
+                        run.HasVisited(node.Id),
+                        node.Next));
+                }
+                return views;
+            }
+        }
+
+        /// <summary>Travels to one of the offered nodes.</summary>
+        public void ChooseNode(int nodeId) => _flow.ChooseNode(nodeId);
+
+        /// <summary>Acknowledges a rest/treasure/shop node and returns to the map.</summary>
+        public void ContinueFromNode() => _flow.ContinueFromNode();
 
         /// <summary>Current turn of the ongoing fight, counting from 1. Zero between fights.</summary>
         public int Turn => _runner.Current?.Context.TurnNumber ?? 0;
@@ -102,7 +158,7 @@ namespace STSlike.Presentation.UI
             get
             {
                 RunContext run = _flow.Run;
-                return new RunView(run.CharacterId, run.CurrentEncounter, run.TotalEncounters,
+                return new RunView(run.CharacterId, run.Floor, run.TotalFloors,
                     run.Credits, run.Cards.Count, run.Seed, run.IsFinished, run.PlayerWon);
             }
         }
@@ -199,6 +255,43 @@ namespace STSlike.Presentation.UI
         public void SkipReward() => _flow.SkipReward();
 
         public void StartNewRun() => _flow.Restart();
+
+        /// <summary>
+        /// Development aid: skips whatever is currently on screen — wins the
+        /// fight, declines the reward, takes the first route, acknowledges a
+        /// node. Everything goes through the normal commands, so the run stays
+        /// in a state it could have reached by playing.
+        /// </summary>
+        public void DebugSkip()
+        {
+            if (IsRunOver)
+            {
+                StartNewRun();
+                return;
+            }
+
+            if (IsAwaitingReward)
+            {
+                SkipReward();
+                return;
+            }
+
+            if (IsVisitingNode)
+            {
+                ContinueFromNode();
+                return;
+            }
+
+            if (IsChoosingNode)
+            {
+                IReadOnlyList<MapNode> choices = _flow.NodeChoices;
+                if (choices.Count > 0)
+                    ChooseNode(choices[0].Id);
+                return;
+            }
+
+            _runner.Current?.ForceResolve(playerWon: true);
+        }
 
         // ---- event plumbing ----
 

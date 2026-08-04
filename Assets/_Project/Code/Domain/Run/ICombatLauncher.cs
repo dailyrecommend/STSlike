@@ -7,6 +7,6 @@ namespace STSlike.Domain.Run
     /// </summary>
     public interface ICombatLauncher
     {
-        void StartCombat(int encounterNumber);
+        void StartCombat(CombatRequest request);
     }
 }

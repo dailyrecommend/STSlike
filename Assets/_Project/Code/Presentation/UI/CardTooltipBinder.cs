@@ -121,11 +121,9 @@ namespace STSlike.Presentation.UI
             SetText(rarityText, card.Rarity.ToString());
             SetText(descriptionText, card.Description);
 
-            if (artwork != null)
-            {
+            // Keep the prefab's placeholder art when a card has none of its own.
+            if (artwork != null && card.Artwork != null)
                 artwork.sprite = card.Artwork;
-                artwork.enabled = card.Artwork != null;
-            }
 
             if (!panel.activeSelf)
                 panel.SetActive(true);

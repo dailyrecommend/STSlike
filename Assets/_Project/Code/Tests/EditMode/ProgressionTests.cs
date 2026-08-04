@@ -7,6 +7,7 @@ using STSlike.Domain.Cards;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
+using STSlike.Domain.Map;
 using STSlike.Domain.Progression;
 using STSlike.Domain.Randomness;
 using STSlike.Domain.Run;
@@ -19,7 +20,7 @@ namespace STSlike.Tests.EditMode
     {
         private sealed class FakeLauncher : ICombatLauncher
         {
-            public void StartCombat(int encounterNumber) { }
+            public void StartCombat(CombatRequest request) { }
         }
 
         private static Card MakeCard(string id) =>
@@ -28,12 +29,28 @@ namespace STSlike.Tests.EditMode
         private static CardDefinition Definition(string id) =>
             new CardDefinition(id, 1, new List<ICardEffect>());
 
-        private static RunContext NewRunContext(int encounters = 2, int seed = 1234, params string[] deck)
+        /// <summary>An all-combat map, so these tests exercise recording rather than routing.</summary>
+        private static RunMap MakeMap(int floors) =>
+            new MapGenerator().Generate(new SystemRng(1), new MapGenerationSettings
+            {
+                RowCount = Math.Max(2, floors),
+                Columns = 3,
+                PathCount = 2,
+                TreasureRow = -1,
+                RestBeforeBoss = false,
+                CombatWeight = 100,
+                EventWeight = 0,
+                EliteWeight = 0,
+                ShopWeight = 0,
+                RestWeight = 0,
+            });
+
+        private static RunContext NewRunContext(int floors = 2, int seed = 1234, params string[] deck)
         {
             var player = new PlayerState("Player", 70, 3, new Deck(new SystemRng(seed)));
             IReadOnlyList<Card> starter = (deck.Length > 0 ? deck : new[] { "strike", "defend" })
                 .Select(MakeCard).ToList();
-            return new RunContext(encounters, player, starter, seed);
+            return new RunContext(MakeMap(floors), player, starter, seed);
         }
 
         // ---- repositories ----
@@ -93,7 +110,7 @@ namespace STSlike.Tests.EditMode
         public void FinishingARun_WritesAHistoryRecord()
         {
             var bus = new EventBus();
-            RunContext run = NewRunContext(encounters: 1, seed: 4242);
+            RunContext run = NewRunContext(floors: 2, seed: 4242);
             var history = new InMemoryRunHistoryRepository();
             var stats = new InMemoryCardStatsRepository();
             var fixedTime = new DateTime(2026, 7, 29, 9, 0, 0, DateTimeKind.Utc);
@@ -104,7 +121,14 @@ namespace STSlike.Tests.EditMode
                 var flow = new RunFlow(bus, new FakeLauncher(), run, NewGenerator());
                 flow.Start();
 
-                bus.Publish(new CombatEndedEvent(true)); // final encounter -> run cleared
+                // Climb the map to the boss, winning every fight.
+                while (!run.IsFinished)
+                {
+                    flow.ChooseNode(flow.NodeChoices[0].Id);
+                    bus.Publish(new CombatEndedEvent(true));
+                    if (flow.IsAwaitingReward)
+                        flow.SkipReward();
+                }
             }
 
             Assert.AreEqual(1, history.TotalRuns);
@@ -112,7 +136,7 @@ namespace STSlike.Tests.EditMode
             Assert.AreEqual("albino", record.CharacterId);
             Assert.AreEqual(4242, record.Seed);       // seed persisted for replay
             Assert.IsTrue(record.PlayerWon);
-            Assert.AreEqual(1, record.EncountersCleared);
+            Assert.AreEqual(run.TotalFloors, record.EncountersCleared);
             Assert.AreEqual(fixedTime, record.CompletedAtUtc);
         }
 
@@ -154,7 +178,7 @@ namespace STSlike.Tests.EditMode
         {
             var bus = new EventBus();
             // Three copies of the same card must count as one run for it.
-            RunContext run = NewRunContext(encounters: 1, seed: 7, deck: new[] { "strike", "strike", "strike" });
+            RunContext run = NewRunContext(floors: 2, seed: 7, deck: new[] { "strike", "strike", "strike" });
             var history = new InMemoryRunHistoryRepository();
             var stats = new InMemoryCardStatsRepository();
 

@@ -7,6 +7,7 @@ using STSlike.Data;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Events;
+using STSlike.Domain.Map;
 using STSlike.Domain.Progression;
 using STSlike.Domain.Randomness;
 using STSlike.Domain.Run;
@@ -38,8 +39,14 @@ namespace STSlike.Presentation
 
         [Header("Run")]
         [SerializeField] private int seed = 0;
-        [SerializeField] private int totalEncounters = 3;
         [SerializeField] private int cardsPerTurn = 5;
+
+        [Header("Map")]
+        [SerializeField] private int mapFloors = 12;
+        [SerializeField] private int mapColumns = 6;
+        [SerializeField] private int mapPaths = 5;
+        [SerializeField] private int firstEliteFloor = 4;
+        [SerializeField] private int treasureFloor = 5;
 
         [Header("Fallback Player Settings (ignored when a Character is assigned)")]
         [SerializeField] private string characterId = "albino";
@@ -51,9 +58,11 @@ namespace STSlike.Presentation
         [SerializeField] private int enemyHp = 45;
         [SerializeField] private int enemyAttack = 12;
 
-        [Header("Per-Encounter Scaling")]
-        [SerializeField] private int enemyHpPerEncounter = 15;
-        [SerializeField] private int enemyAttackPerEncounter = 2;
+        [Header("Per-Floor Scaling")]
+        [SerializeField] private int enemyHpPerFloor = 6;
+        [SerializeField] private int enemyAttackPerFloor = 1;
+        [SerializeField] private float eliteMultiplier = 1.6f;
+        [SerializeField] private float bossMultiplier = 2.4f;
 
         [Header("Starter Deck (assign CardData assets + counts)")]
         [SerializeField] private List<DeckEntry> starterDeck = new List<DeckEntry>();
@@ -76,9 +85,22 @@ namespace STSlike.Presentation
             // carry across encounters.
             builder.Register(resolver =>
                 {
-                    var deck = new Deck(resolver.Resolve<IRng>());
+                    IRng rng = resolver.Resolve<IRng>();
+
+                    // The map is drawn from the same seeded stream, so a seed
+                    // reproduces the route as well as the shuffles.
+                    RunMap map = new MapGenerator().Generate(rng, new MapGenerationSettings
+                    {
+                        RowCount = mapFloors,
+                        Columns = mapColumns,
+                        PathCount = mapPaths,
+                        FirstEliteRow = firstEliteFloor,
+                        TreasureRow = treasureFloor,
+                    });
+
+                    var deck = new Deck(rng);
                     var player = new PlayerState("Player", ResolvedMaxHp, ResolvedMaxEnergy, deck);
-                    return new RunContext(totalEncounters, player, BuildStarterDeck(),
+                    return new RunContext(map, player, BuildStarterDeck(),
                         seed, ResolvedStartingCredits, ResolvedCharacterId);
                 },
                 Lifetime.Singleton);
@@ -122,7 +144,7 @@ namespace STSlike.Presentation
             builder.Register(resolver => new CombatRunner(
                     resolver.Resolve<IEventBus>(),
                     new CombatRunner.Config(cardsPerTurn, enemyHp, enemyAttack,
-                        enemyHpPerEncounter, enemyAttackPerEncounter),
+                        enemyHpPerFloor, enemyAttackPerFloor, eliteMultiplier, bossMultiplier),
                     resolver.Resolve<RunContext>()),
                 Lifetime.Singleton);
 
@@ -146,6 +168,7 @@ namespace STSlike.Presentation
             RegisterIfPresent<CardTooltipBinder>(builder);
             RegisterIfPresent<HandCardLayout>(builder);
             RegisterIfPresent<CardListPopupBinder>(builder);
+            RegisterIfPresent<MapViewBinder>(builder);
         }
 
         /// <summary>

@@ -134,10 +134,19 @@ namespace STSlike.Presentation.UI
         /// the content keeps whatever position it was left in, so reopening a
         /// list would otherwise start part-way down.
         /// </summary>
-        public void ScrollToStart()
+        public void ScrollToStart() => ScrollTo(vertical ? 1f : 0f);
+
+        /// <summary>Jumps to the end of the list — the bottom of a vertical one.</summary>
+        public void ScrollToEnd() => ScrollTo(vertical ? 0f : 1f);
+
+        /// <summary>
+        /// Jumps to a normalized position (vertical: 0 is the bottom, 1 the top)
+        /// and clears the glide, so the next wheel notch starts from here.
+        /// </summary>
+        public void ScrollTo(float normalized)
         {
             velocity = Vector2.zero;
-            SetNormalizedPosition(vertical ? 1f : 0f);
+            SetNormalizedPosition(Mathf.Clamp01(normalized));
             SyncTargetToCurrent();
         }
 
