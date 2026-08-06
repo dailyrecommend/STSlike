@@ -83,18 +83,43 @@ namespace STSlike.Presentation.UI
         public readonly int MaxHp;
         public readonly int Block;
         public readonly string IntentKind;
+
+        /// <summary>Damage or block per hit.</summary>
         public readonly int IntentAmount;
+
+        /// <summary>How many times it lands; 1 for a single hit.</summary>
+        public readonly int IntentHits;
+
+        /// <summary>Motion authored for the move this enemy is about to make.</summary>
+        public readonly string IntentMotion;
+
+        /// <summary>Seconds into that motion at which the first hit lands.</summary>
+        public readonly float IntentImpactDelay;
+
+        /// <summary>Gap between the blows of a multi-hit move.</summary>
+        public readonly float IntentHitInterval;
 
         public float HpFraction => MaxHp <= 0 ? 0f : (float)Hp / MaxHp;
 
-        public EnemyView(string name, int hp, int maxHp, int block, string intentKind, int intentAmount)
+        /// <summary>"8" for one hit, "5 x3" for a multi-hit.</summary>
+        public string IntentText =>
+            IntentHits > 1 ? $"{IntentAmount} x{IntentHits}" : IntentAmount.ToString();
+
+        public EnemyView(string name, int hp, int maxHp, int block,
+            string intentKind, int intentAmount, int intentHits,
+            string intentMotion = null, float intentImpactDelay = 0f,
+            float intentHitInterval = 0f)
         {
+            IntentImpactDelay = intentImpactDelay;
+            IntentHitInterval = intentHitInterval;
             Name = name;
             Hp = hp;
             MaxHp = maxHp;
             Block = block;
             IntentKind = intentKind;
             IntentAmount = intentAmount;
+            IntentHits = intentHits < 1 ? 1 : intentHits;
+            IntentMotion = intentMotion;
         }
     }
 
@@ -119,9 +144,22 @@ namespace STSlike.Presentation.UI
         public readonly CardType Type;
         public readonly CardRarity Rarity;
 
+        /// <summary>Motion the character plays for this card.</summary>
+        public readonly string AnimationTrigger;
+
+        /// <summary>Seconds into that motion at which the hit should read as landing.</summary>
+        public readonly float ImpactDelay;
+
+        /// <summary>Gap between blows when this card hits more than once.</summary>
+        public readonly float HitInterval;
+
         public CardView(int handIndex, string id, int cost, bool isPlayable,
-            string name, string description, Sprite artwork, CardType type, CardRarity rarity)
+            string name, string description, Sprite artwork, CardType type, CardRarity rarity,
+            string animationTrigger = null, float impactDelay = 0f, float hitInterval = 0f)
         {
+            AnimationTrigger = animationTrigger;
+            ImpactDelay = impactDelay;
+            HitInterval = hitInterval;
             HandIndex = handIndex;
             Id = id;
             Cost = cost;
@@ -201,16 +239,68 @@ namespace STSlike.Presentation.UI
         }
     }
 
+    /// <summary>
+    /// Points at one of the figures on stage without handing out a domain
+    /// object: the player, or an enemy by its slot in the room.
+    /// </summary>
+    public readonly struct ActorRef
+    {
+        public readonly bool IsPlayer;
+
+        /// <summary>Slot in the room; -1 for the player or an unknown actor.</summary>
+        public readonly int EnemyIndex;
+
+        public bool IsValid => IsPlayer || EnemyIndex >= 0;
+
+        private ActorRef(bool isPlayer, int enemyIndex)
+        {
+            IsPlayer = isPlayer;
+            EnemyIndex = enemyIndex;
+        }
+
+        public static ActorRef Player => new ActorRef(true, -1);
+        public static ActorRef Enemy(int index) => new ActorRef(false, index);
+        public static ActorRef None => new ActorRef(false, -1);
+    }
+
+    /// <summary>
+    /// A figure is starting a move: which one, what motion, and how long it
+    /// winds up. Raised once per action, so a three-hit flurry plays one
+    /// animation rather than three.
+    /// </summary>
+    public readonly struct ActorActionView
+    {
+        public readonly ActorRef Actor;
+        public readonly string Motion;
+        public readonly float ImpactDelay;
+
+        /// <summary>Gap between the blows of a multi-hit move.</summary>
+        public readonly float HitInterval;
+
+        public ActorActionView(ActorRef actor, string motion, float impactDelay, float hitInterval)
+        {
+            Actor = actor;
+            Motion = motion;
+            ImpactDelay = impactDelay;
+            HitInterval = hitInterval;
+        }
+    }
+
     /// <summary>Payload for floating damage numbers and hit reactions.</summary>
     public readonly struct HitView
     {
-        public readonly bool OnPlayer;
+        public readonly ActorRef Source;
+        public readonly ActorRef Target;
         public readonly string TargetName;
         public readonly int Amount;
 
-        public HitView(bool onPlayer, string targetName, int amount)
+        /// <summary>Convenience for HUD code that only cares about the player.</summary>
+        public bool OnPlayer => Target.IsPlayer;
+
+        public HitView(ActorRef source, ActorRef target, string targetName, int amount)
         {
-            OnPlayer = onPlayer;
+            Source = source;
+            Target = target;
             TargetName = targetName;
             Amount = amount;
         }

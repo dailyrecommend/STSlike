@@ -34,6 +34,19 @@ namespace STSlike.Data
 
         [SerializeField] private Sprite artwork;
 
+        [Tooltip("Animator trigger the character plays when this card is used. " +
+                 "Cards that share a motion can share a trigger.")]
+        [SerializeField] private string animationTrigger = "Attack";
+
+        [Tooltip("Seconds from the start of the motion until the blow lands. " +
+                 "The damage is already decided by then — this only holds back " +
+                 "the flinch and the health bar so they line up with the swing.")]
+        [SerializeField, Min(0f)] private float impactDelay = 0.25f;
+
+        [Tooltip("Seconds between blows when this card hits more than once. " +
+                 "Match it to the rhythm of the animation's swings.")]
+        [SerializeField, Min(0f)] private float hitInterval = 0.15f;
+
         public string Id => id;
         public int Cost => cost;
         public CardType Type => type;
@@ -47,6 +60,15 @@ namespace STSlike.Data
         public string DescriptionTemplate => description;
 
         public Sprite Artwork => artwork;
+
+        /// <summary>Motion the character plays when this card resolves.</summary>
+        public string AnimationTrigger => animationTrigger;
+
+        /// <summary>Seconds into the motion at which the hit should read as landing.</summary>
+        public float ImpactDelay => impactDelay;
+
+        /// <summary>Gap between blows when this card hits more than once.</summary>
+        public float HitInterval => hitInterval;
 
         /// <summary>
         /// Programmatic factory for tests and editor tooling. Authored assets

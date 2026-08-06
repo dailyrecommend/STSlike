@@ -52,8 +52,17 @@ namespace STSlike.Presentation.UI
         [SerializeField] private TMP_Text turnText;
         [SerializeField] private Button newRunButton;
 
+        [Header("Bars")]
+        [Tooltip("How quickly a health bar catches up to the real value. " +
+                 "0 snaps. A short drain is what makes a hit feel like it landed " +
+                 "at the moment of impact rather than the moment the card was clicked.")]
+        [SerializeField, Min(0f)] private float barSmoothing = 8f;
+
         private CombatPresenter _presenter;
         private CharacterPresentation _character;
+
+        private float _playerFill = -1f;
+        private float _enemyFill = -1f;
 
         [Inject]
         public void Construct(CombatPresenter presenter, CharacterPresentation character)
@@ -109,7 +118,6 @@ namespace STSlike.Presentation.UI
 
             PlayerView player = _presenter.Player;
             SetText(playerHpText, $"{player.Hp}/{player.MaxHp}");
-            SetFill(playerHpFill, player.HpFraction);
             SetText(energyText, $"{player.Energy}/{player.MaxEnergy}");
             SetBlock(playerBlockRoot, playerBlockText, player.Block);
             SetText(drawCountText, player.DrawCount.ToString());
@@ -119,10 +127,9 @@ namespace STSlike.Presentation.UI
             EnemyView enemy = _presenter.Enemy;
             SetText(enemyNameText, enemy.Name);
             SetText(enemyHpText, $"{enemy.Hp}/{enemy.MaxHp}");
-            SetFill(enemyHpFill, enemy.HpFraction);
             SetBlock(enemyBlockRoot, enemyBlockText, enemy.Block);
             SetText(enemyIntentText, enemy.IntentAmount > 0
-                ? $"{enemy.IntentKind} {enemy.IntentAmount}"
+                ? $"{enemy.IntentKind} {enemy.IntentText}"
                 : enemy.IntentKind);
 
             SetActive(combatRoot, _presenter.IsInCombat);
@@ -130,6 +137,37 @@ namespace STSlike.Presentation.UI
             SetActive(runOverRoot, _presenter.IsRunOver);
             if (_presenter.IsRunOver)
                 SetText(runOverText, run.PlayerWon ? "VICTORY" : "DEFEAT");
+        }
+
+        /// <summary>
+        /// Bars are drained here rather than in Refresh so they glide toward the
+        /// real value. The number changed the instant the card was played; the
+        /// bar arriving a moment later is what makes the hit read as landing
+        /// with the animation.
+        /// </summary>
+        private void Update()
+        {
+            if (_presenter == null)
+                return;
+
+            _playerFill = Approach(_playerFill, _presenter.Player.HpFraction);
+            SetFill(playerHpFill, _playerFill);
+
+            _enemyFill = Approach(_enemyFill, _presenter.Enemy.HpFraction);
+            SetFill(enemyHpFill, _enemyFill);
+        }
+
+        private float Approach(float current, float target)
+        {
+            // First frame, or an instant setting: land on the value directly.
+            if (current < 0f || barSmoothing <= 0f)
+                return target;
+
+            // Refilling (a new fight, a heal) should not crawl upward.
+            if (target > current)
+                return target;
+
+            return Mathf.Lerp(current, target, 1f - Mathf.Exp(-barSmoothing * Time.unscaledDeltaTime));
         }
 
         // Block is usually hidden entirely at zero rather than shown as "0".

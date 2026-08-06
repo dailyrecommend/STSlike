@@ -24,7 +24,7 @@ namespace STSlike.Domain.Effects
                 return;
 
             context.Target.TakeDamage(amount);
-            context.Bus?.Publish(new DamageDealtEvent(context.Target, amount));
+            context.Bus?.Publish(new DamageDealtEvent(context.Source, context.Target, amount));
         }
     }
 }

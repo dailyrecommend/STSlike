@@ -21,6 +21,8 @@ MonoBehaviour:
   displayName: Strike
   description: Deal {0}.
   artwork: {fileID: 0}
+  animationTrigger: Attack
+  impactDelay: 0.3333
   references:
     version: 2
     RefIds:

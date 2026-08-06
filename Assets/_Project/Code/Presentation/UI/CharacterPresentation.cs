@@ -14,11 +14,15 @@ namespace STSlike.Presentation.UI
         public Sprite Icon { get; }
         public Sprite EnergyIcon { get; }
 
-        public CharacterPresentation(string id, Sprite icon, Sprite energyIcon)
+        /// <summary>The 3D figure spawned in the arena.</summary>
+        public GameObject ModelPrefab { get; }
+
+        public CharacterPresentation(string id, Sprite icon, Sprite energyIcon, GameObject modelPrefab)
         {
             Id = string.IsNullOrWhiteSpace(id) ? "default" : id;
             Icon = icon;
             EnergyIcon = energyIcon;
+            ModelPrefab = modelPrefab;
         }
     }
 }

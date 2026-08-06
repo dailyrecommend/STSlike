@@ -31,6 +31,9 @@ namespace STSlike.Data
         [SerializeField] private Sprite icon;
         [SerializeField] private Sprite energyIcon;
 
+        [Tooltip("Spawned in the arena when a run begins.")]
+        [SerializeField] private GameObject modelPrefab;
+
         [Header("Starting Resources")]
         [SerializeField, Min(1)] private int maxHp = 70;
         [SerializeField, Min(0)] private int maxEnergy = 3;
@@ -49,6 +52,9 @@ namespace STSlike.Data
 
         /// <summary>Energy orb art; each character has its own.</summary>
         public Sprite EnergyIcon => energyIcon;
+
+        /// <summary>The 3D figure that stands in the arena.</summary>
+        public GameObject ModelPrefab => modelPrefab;
 
         public IReadOnlyList<ICardDefinition> StartingDeck => BuildStartingDeck();
 

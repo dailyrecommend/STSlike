@@ -131,24 +131,70 @@ namespace STSlike.Domain.Combat
         private void RunEnemyTurn()
         {
             _context.Phase = CombatPhase.EnemyTurn;
-            EnemyState enemy = _context.Enemy;
 
-            // Enemy actions reuse the same effect system as cards.
-            if (enemy.Intent.Type == IntentType.Attack)
+            foreach (EnemyState enemy in _context.Enemies)
             {
-                _invoker.Enqueue(new EffectCommand(
-                    new DealDamageEffect(enemy.Intent.Amount),
-                    new EffectContext(enemy, _context.Player, _bus)));
-                _invoker.ExecuteAll();
+                if (enemy.IsDead)
+                    continue;
+
+                // Block an enemy raised last turn protected it through the
+                // player's turn; it expires as its own turn comes round.
+                enemy.ResetBlock();
+                Act(enemy);
+
+                // Killing the player mid-way stops the rest of the room from
+                // piling on after the fight is already decided.
+                if (_context.Player.IsDead)
+                    break;
             }
 
-            enemy.PlanNextTurn();
+            foreach (EnemyState enemy in _context.Enemies)
+            {
+                if (!enemy.IsDead)
+                    enemy.PlanNextTurn(_context.TurnNumber + 1);
+            }
+
             CheckCombatEnd();
+        }
+
+        private void Act(EnemyState enemy)
+        {
+            // Announced once for the whole move, however many blows it contains.
+            _bus.Publish(new EnemyActionStartedEvent(enemy, enemy.Intent));
+
+            // Enemy actions reuse the same effect system as cards, so block and
+            // damage behave identically no matter who caused them.
+            switch (enemy.Intent.Type)
+            {
+                case IntentType.Attack:
+                    // Queued as one command per hit rather than one for the
+                    // total: block is spent per hit, and each lands as its own
+                    // event so the view can play three impacts, not one.
+                    for (int hit = 0; hit < enemy.Intent.Hits; hit++)
+                    {
+                        _invoker.Enqueue(new EffectCommand(
+                            new DealDamageEffect(enemy.Intent.Amount),
+                            new EffectContext(enemy, _context.Player, _bus)));
+                    }
+                    _invoker.ExecuteAll();
+                    break;
+
+                case IntentType.Defend:
+                    _invoker.Enqueue(new EffectCommand(
+                        new GainBlockEffect(enemy.Intent.Amount),
+                        new EffectContext(enemy, _context.Player, _bus)));
+                    _invoker.ExecuteAll();
+                    break;
+
+                // Buff has no mechanic behind it until status effects exist;
+                // it is telegraphed and then does nothing rather than silently
+                // being treated as an attack.
+            }
         }
 
         private void CheckCombatEnd()
         {
-            if (_context.Enemy.IsDead)
+            if (_context.AllEnemiesDead)
                 _context.Phase = CombatPhase.Won;
             else if (_context.Player.IsDead)
                 _context.Phase = CombatPhase.Lost;

@@ -36,8 +36,14 @@ namespace STSlike.Presentation.UI
         /// <summary>Any visible state may have changed; rebind the HUD.</summary>
         public event Action Changed;
 
-        /// <summary>A card finished resolving (id).</summary>
-        public event Action<string> CardPlayed;
+        /// <summary>A card was played — carries its art and motion for the stage.</summary>
+        public event Action<CardView> CardPlayed;
+
+        /// <summary>A fight has been built and the figures can be spawned.</summary>
+        public event Action CombatStarted;
+
+        /// <summary>An enemy is starting its move — play its motion once here.</summary>
+        public event Action<ActorActionView> EnemyActionStarted;
 
         /// <summary>Damage landed — drive floating numbers and hit reactions from this.</summary>
         public event Action<HitView> Hit;
@@ -46,7 +52,10 @@ namespace STSlike.Presentation.UI
         public event Action<HitView> BlockGained;
 
         public event Action PlayerTurnStarted;
+
+        /// <summary>The run has entered a fight, before it has been built.</summary>
         public event Action EncounterStarted;
+
         public event Action RewardOffered;
 
         /// <summary>True when the run is over; the bool is whether it was cleared.</summary>
@@ -59,6 +68,8 @@ namespace STSlike.Presentation.UI
             _runner = runner ?? throw new ArgumentNullException(nameof(runner));
 
             _bus.Subscribe<EncounterStartedEvent>(OnEncounterStarted);
+            _bus.Subscribe<CombatStartedEvent>(OnCombatStarted);
+            _bus.Subscribe<EnemyActionStartedEvent>(OnEnemyActionStarted);
             _bus.Subscribe<PlayerTurnStartedEvent>(OnPlayerTurnStarted);
             _bus.Subscribe<CardPlayedEvent>(OnCardPlayed);
             _bus.Subscribe<CardResolvedEvent>(OnAnyChange);
@@ -77,6 +88,8 @@ namespace STSlike.Presentation.UI
         public void Dispose()
         {
             _bus.Unsubscribe<EncounterStartedEvent>(OnEncounterStarted);
+            _bus.Unsubscribe<CombatStartedEvent>(OnCombatStarted);
+            _bus.Unsubscribe<EnemyActionStartedEvent>(OnEnemyActionStarted);
             _bus.Unsubscribe<PlayerTurnStartedEvent>(OnPlayerTurnStarted);
             _bus.Unsubscribe<CardPlayedEvent>(OnCardPlayed);
             _bus.Unsubscribe<CardResolvedEvent>(OnAnyChange);
@@ -188,6 +201,7 @@ namespace STSlike.Presentation.UI
         /// <summary>Every card owned this run, for the deck viewer in the top bar.</summary>
         public IReadOnlyList<CardView> RunDeckContents => Describe(_flow.Run.Cards, sorted: true);
 
+        /// <summary>The default target — the first enemy still standing.</summary>
         public EnemyView Enemy
         {
             get
@@ -196,10 +210,69 @@ namespace STSlike.Presentation.UI
                 if (manager == null)
                     return default;
 
-                var enemy = manager.Context.Enemy;
-                return new EnemyView(enemy.Name, enemy.CurrentHp, enemy.MaxHp, enemy.Block,
-                    enemy.Intent.Type.ToString(), enemy.Intent.Amount);
+                IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+                for (int i = 0; i < enemies.Count; i++)
+                {
+                    if (!enemies[i].IsDead)
+                        return Describe(enemies[i], i);
+                }
+                return Describe(enemies[0], 0);
             }
+        }
+
+        /// <summary>
+        /// Everyone in the room, for a fight with more than one opponent. Dead
+        /// ones are included so the view can play a death animation before
+        /// removing them.
+        /// </summary>
+        public IReadOnlyList<EnemyView> Enemies
+        {
+            get
+            {
+                var views = new List<EnemyView>();
+                CombatManager manager = _runner.Current;
+                if (manager == null)
+                    return views;
+
+                IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+                for (int i = 0; i < enemies.Count; i++)
+                    views.Add(Describe(enemies[i], i));
+                return views;
+            }
+        }
+
+        private EnemyView Describe(Domain.Actors.EnemyState enemy, int slot)
+        {
+            return new EnemyView(enemy.Name, enemy.CurrentHp, enemy.MaxHp, enemy.Block,
+                enemy.Intent.Type.ToString(), enemy.Intent.Amount, enemy.Intent.Hits,
+                MotionFor(slot, enemy.Intent.MoveIndex),
+                ImpactDelayFor(slot, enemy.Intent.MoveIndex),
+                HitIntervalFor(slot, enemy.Intent.MoveIndex));
+        }
+
+        /// <summary>Looks up the motion authored beside this step of the enemy's routine.</summary>
+        private string MotionFor(int slot, int moveIndex)
+        {
+            EnemyData data = DataFor(slot);
+            return data != null ? data.AnimationFor(moveIndex) : null;
+        }
+
+        private float ImpactDelayFor(int slot, int moveIndex)
+        {
+            EnemyData data = DataFor(slot);
+            return data != null ? data.ImpactDelayFor(moveIndex) : 0f;
+        }
+
+        private float HitIntervalFor(int slot, int moveIndex)
+        {
+            EnemyData data = DataFor(slot);
+            return data != null ? data.HitIntervalFor(moveIndex) : 0f;
+        }
+
+        private EnemyData DataFor(int slot)
+        {
+            IReadOnlyList<EnemyData> data = _runner.CurrentEnemyData;
+            return slot >= 0 && slot < data.Count ? data[slot] : null;
         }
 
         public IReadOnlyList<CardView> Hand
@@ -309,22 +382,64 @@ namespace STSlike.Presentation.UI
 
         private void OnCardPlayed(CardPlayedEvent e)
         {
-            CardPlayed?.Invoke(e.Card.Id);
+            CardPlayed?.Invoke(BuildCardView(e.Card, -1, playable: false));
             RaiseChanged();
+        }
+
+        private void OnCombatStarted(CombatStartedEvent e)
+        {
+            CombatStarted?.Invoke();
+            RaiseChanged();
+        }
+
+        private void OnEnemyActionStarted(EnemyActionStartedEvent e)
+        {
+            ActorRef actor = Identify(e.Enemy);
+            int move = e.Intent != null ? e.Intent.MoveIndex : -1;
+
+            EnemyActionStarted?.Invoke(new ActorActionView(
+                actor,
+                MotionFor(actor.EnemyIndex, move),
+                ImpactDelayFor(actor.EnemyIndex, move),
+                HitIntervalFor(actor.EnemyIndex, move)));
         }
 
         private void OnDamageDealt(DamageDealtEvent e)
         {
-            bool onPlayer = ReferenceEquals(e.Target, _flow.Run.Player);
-            Hit?.Invoke(new HitView(onPlayer, e.Target.Name, e.Amount));
+            Hit?.Invoke(new HitView(Identify(e.Source), Identify(e.Target), e.Target.Name, e.Amount));
             RaiseChanged();
         }
 
         private void OnBlockGained(BlockGainedEvent e)
         {
-            bool onPlayer = ReferenceEquals(e.Actor, _flow.Run.Player);
-            BlockGained?.Invoke(new HitView(onPlayer, e.Actor.Name, e.Amount));
+            ActorRef actor = Identify(e.Actor);
+            BlockGained?.Invoke(new HitView(actor, actor, e.Actor.Name, e.Amount));
             RaiseChanged();
+        }
+
+        /// <summary>
+        /// Turns a combatant into a stage reference. Enemies are identified by
+        /// their slot, which is what the stage uses to find the right model.
+        /// </summary>
+        private ActorRef Identify(Domain.Actors.Combatant combatant)
+        {
+            if (combatant == null)
+                return ActorRef.None;
+            if (ReferenceEquals(combatant, _flow.Run.Player))
+                return ActorRef.Player;
+
+            CombatManager manager = _runner.Current;
+            if (manager == null)
+                return ActorRef.None;
+
+            IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                if (ReferenceEquals(enemies[i], combatant))
+                    return ActorRef.Enemy(i);
+            }
+
+            return ActorRef.None;
         }
 
         private void OnRewardOffered(RewardOfferedEvent e)
@@ -373,7 +488,10 @@ namespace STSlike.Presentation.UI
                 : string.Empty;
 
             return new CardView(handIndex, card.Id, card.Cost, playable,
-                name, description, art, card.Definition.Type, card.Definition.Rarity);
+                name, description, art, card.Definition.Type, card.Definition.Rarity,
+                data != null ? data.AnimationTrigger : null,
+                data != null ? data.ImpactDelay : 0f,
+                data != null ? data.HitInterval : 0f);
         }
 
         /// <summary>

@@ -14,6 +14,7 @@ using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
 using STSlike.Infrastructure.Persistence;
 using STSlike.Presentation.UI;
+using STSlike.Presentation.View;
 #if STSLIKE_SQLITE
 using STSlike.Infrastructure.Persistence.Sqlite;
 #endif
@@ -54,15 +55,12 @@ namespace STSlike.Presentation
         [SerializeField] private int maxEnergy = 3;
         [SerializeField] private int startingCredits = 100;
 
-        [Header("Enemy")]
+        [Header("Enemies (assign EnemyData assets)")]
+        [SerializeField] private List<EnemyData> enemyPool = new List<EnemyData>();
+
+        [Header("Fallback Enemy (used when the pool is empty)")]
         [SerializeField] private int enemyHp = 45;
         [SerializeField] private int enemyAttack = 12;
-
-        [Header("Per-Floor Scaling")]
-        [SerializeField] private int enemyHpPerFloor = 6;
-        [SerializeField] private int enemyAttackPerFloor = 1;
-        [SerializeField] private float eliteMultiplier = 1.6f;
-        [SerializeField] private float bossMultiplier = 2.4f;
 
         [Header("Starter Deck (assign CardData assets + counts)")]
         [SerializeField] private List<DeckEntry> starterDeck = new List<DeckEntry>();
@@ -110,7 +108,8 @@ namespace STSlike.Presentation
             builder.RegisterInstance(new CharacterPresentation(
                 ResolvedCharacterId,
                 character != null ? character.Icon : null,
-                character != null ? character.EnergyIcon : null));
+                character != null ? character.EnergyIcon : null,
+                character != null ? character.ModelPrefab : null));
 
             // Meta progression. The repositories are interfaces, so the storage
             // swap lives here and nowhere else — no game code knows which one
@@ -143,9 +142,10 @@ namespace STSlike.Presentation
 
             builder.Register(resolver => new CombatRunner(
                     resolver.Resolve<IEventBus>(),
-                    new CombatRunner.Config(cardsPerTurn, enemyHp, enemyAttack,
-                        enemyHpPerFloor, enemyAttackPerFloor, eliteMultiplier, bossMultiplier),
-                    resolver.Resolve<RunContext>()),
+                    new CombatRunner.Config(cardsPerTurn, enemyHp, enemyAttack),
+                    resolver.Resolve<RunContext>(),
+                    resolver.Resolve<IRng>(),
+                    enemyPool),
                 Lifetime.Singleton);
 
             // The flow depends on the launcher abstraction, not on CombatRunner.
@@ -169,6 +169,7 @@ namespace STSlike.Presentation
             RegisterIfPresent<HandCardLayout>(builder);
             RegisterIfPresent<CardListPopupBinder>(builder);
             RegisterIfPresent<MapViewBinder>(builder);
+            RegisterIfPresent<CombatStageBinder>(builder);
         }
 
         /// <summary>

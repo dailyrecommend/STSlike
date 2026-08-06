@@ -21,6 +21,7 @@ MonoBehaviour:
   displayName: Defend
   description: Gain {0} Block.
   artwork: {fileID: 0}
+  animationTrigger: Null
   references:
     version: 2
     RefIds:

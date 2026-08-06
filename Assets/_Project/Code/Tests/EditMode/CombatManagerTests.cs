@@ -84,6 +84,133 @@ namespace STSlike.Tests.EditMode
             Assert.AreEqual(4, handCountWhenResolved);
         }
 
+        // ---- more than one enemy ----
+
+        [Test]
+        public void Victory_RequiresEveryEnemyToFall()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var first = new EnemyState("A", 6, 2);
+            var second = new EnemyState("B", 50, 2);
+            var ctx = new CombatContext(player, first, second);
+            var mgr = new CombatManager(ctx, new EventBus(), 5);
+            mgr.StartCombat(DeckOf(12, Strike));
+
+            mgr.PlayCard(FirstInHand(ctx), first);   // 6 damage kills A
+
+            Assert.IsTrue(first.IsDead);
+            Assert.IsFalse(second.IsDead);
+            Assert.AreEqual(CombatPhase.PlayerTurn, ctx.Phase, "The fight ended with an enemy still alive.");
+        }
+
+        [Test]
+        public void DefaultTarget_SkipsTheDead()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var first = new EnemyState("A", 6, 2);
+            var second = new EnemyState("B", 50, 2);
+            var ctx = new CombatContext(player, first, second);
+            var mgr = new CombatManager(ctx, new EventBus(), 5);
+            mgr.StartCombat(DeckOf(12, Strike));
+
+            mgr.PlayCard(FirstInHand(ctx), first);   // A dies
+
+            Assert.AreSame(second, ctx.Enemy);
+        }
+
+        [Test]
+        public void EveryLivingEnemyActsOnItsTurn()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var first = new EnemyState("A", 50, 4);
+            var second = new EnemyState("B", 50, 6);
+            var ctx = new CombatContext(player, first, second);
+            var mgr = new CombatManager(ctx, new EventBus(), 5);
+            mgr.StartCombat(DeckOf(12, Strike));
+
+            mgr.EndTurn();
+
+            Assert.AreEqual(70, player.CurrentHp);   // took 4 + 6
+        }
+
+        [Test]
+        public void DeadEnemies_DoNotAct()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var first = new EnemyState("A", 6, 4);
+            var second = new EnemyState("B", 50, 6);
+            var ctx = new CombatContext(player, first, second);
+            var mgr = new CombatManager(ctx, new EventBus(), 5);
+            mgr.StartCombat(DeckOf(12, Strike));
+
+            mgr.PlayCard(FirstInHand(ctx), first);   // A dies
+            mgr.EndTurn();
+
+            Assert.AreEqual(74, player.CurrentHp);   // only B's 6
+        }
+
+        // The whole point of "5 x3" instead of "15": block is spent per hit, so
+        // a flurry punches through a guard that would stop one big blow.
+        [Test]
+        public void MultiHitAttacks_AreAbsorbedOneHitAtATime()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var flurry = new EnemyState("Flurry", 50,
+                new ScriptedEnemyBehavior(new[] { new EnemyMove(IntentType.Attack, 5, hits: 3) }));
+            var ctx = new CombatContext(player, flurry);
+            var mgr = new CombatManager(ctx, new EventBus(), 5);
+            mgr.StartCombat(DeckOf(12, Defend));
+
+            mgr.PlayCard(FirstInHand(ctx), flurry);   // +5 block
+            mgr.EndTurn();
+
+            // 5 block stops the first hit exactly; the other two land in full.
+            Assert.AreEqual(70, player.CurrentHp);
+        }
+
+        [Test]
+        public void MultiHitAttacks_RaiseOneEventPerHit()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var flurry = new EnemyState("Flurry", 50,
+                new ScriptedEnemyBehavior(new[] { new EnemyMove(IntentType.Attack, 4, hits: 3) }));
+            var ctx = new CombatContext(player, flurry);
+            var bus = new EventBus();
+
+            int hits = 0;
+            bus.Subscribe<DamageDealtEvent>(_ => hits++);
+
+            var mgr = new CombatManager(ctx, bus, 5);
+            mgr.StartCombat(DeckOf(12, Strike));
+            hits = 0;   // ignore anything from setup
+
+            mgr.EndTurn();
+
+            Assert.AreEqual(3, hits, "The view needs one impact per hit, not one for the total.");
+        }
+
+        [Test]
+        public void ADefendingEnemy_BlocksTheNextHit()
+        {
+            var player = new PlayerState("Player", 80, 3, new Deck(new SystemRng(0)));
+            var guard = new EnemyState("Guard", 50,
+                new ScriptedEnemyBehavior(new[]
+                {
+                    new EnemyMove(IntentType.Defend, 10),
+                    new EnemyMove(IntentType.Attack, 5),
+                }));
+            var ctx = new CombatContext(player, guard);
+            var mgr = new CombatManager(ctx, new EventBus(), 5);
+            mgr.StartCombat(DeckOf(12, Strike));
+
+            mgr.EndTurn();                            // the guard raises 10 block
+            Assert.AreEqual(10, guard.Block);
+
+            mgr.PlayCard(FirstInHand(ctx), guard);    // 6 damage, fully absorbed
+            Assert.AreEqual(50, guard.CurrentHp);
+            Assert.AreEqual(4, guard.Block);
+        }
+
         [Test]
         public void TurnNumber_StartsAtOne_AndCountsPlayerTurns()
         {

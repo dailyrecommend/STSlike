@@ -39,13 +39,39 @@ namespace STSlike.Domain.Combat
         public CombatEndedEvent(bool playerWon) => PlayerWon = playerWon;
     }
 
-    /// <summary>Damage was applied to a combatant (raised by the effect that dealt it).</summary>
+    /// <summary>
+    /// An enemy is beginning its telegraphed move, before any of it resolves.
+    ///
+    /// Separate from the damage events because one action can land several
+    /// blows: the motion belongs to the action and plays once, while the hits
+    /// that follow are what the target reacts to.
+    /// </summary>
+    public readonly struct EnemyActionStartedEvent
+    {
+        public readonly Actors.EnemyState Enemy;
+        public readonly Actors.EnemyIntent Intent;
+
+        public EnemyActionStartedEvent(Actors.EnemyState enemy, Actors.EnemyIntent intent)
+        {
+            Enemy = enemy;
+            Intent = intent;
+        }
+    }
+
+    /// <summary>
+    /// Damage was applied to a combatant (raised by the effect that dealt it).
+    /// Carries who swung as well as who was hit, so the stage can play an attack
+    /// on one actor and a flinch on the other.
+    /// </summary>
     public readonly struct DamageDealtEvent
     {
+        public readonly Combatant Source;
         public readonly Combatant Target;
         public readonly int Amount;
-        public DamageDealtEvent(Combatant target, int amount)
+
+        public DamageDealtEvent(Combatant source, Combatant target, int amount)
         {
+            Source = source;
             Target = target;
             Amount = amount;
         }
