@@ -53,23 +53,31 @@ namespace STSlike.Presentation.UI
         [SerializeField] private Button newRunButton;
 
         [Header("Bars")]
-        [Tooltip("How quickly a health bar catches up to the real value. " +
-                 "0 snaps. A short drain is what makes a hit feel like it landed " +
-                 "at the moment of impact rather than the moment the card was clicked.")]
-        [SerializeField, Min(0f)] private float barSmoothing = 8f;
+        [Tooltip("How quickly a health bar catches up to the value being shown. " +
+                 "0 snaps. Timing a hit to its impact is no longer this field's " +
+                 "job, so it only needs enough to take the edge off a single " +
+                 "blow — too low and a fast flurry outruns the bar entirely.")]
+        [SerializeField, Min(0f)] private float barSmoothing = 20f;
 
         private CombatPresenter _presenter;
         private CharacterPresentation _character;
+        private CombatDisplayState _display;
 
         private float _playerFill = -1f;
         private float _enemyFill = -1f;
 
         [Inject]
-        public void Construct(CombatPresenter presenter, CharacterPresentation character)
+        public void Construct(CombatPresenter presenter, CharacterPresentation character,
+            CombatDisplayState display)
         {
             _presenter = presenter;
             _character = character;
+            _display = display;
             _presenter.Changed += Refresh;
+
+            // Blows are released one at a time as the stage plays them, which is
+            // not something the rules have an opinion about.
+            _display.Changed += Refresh;
 
             ApplyCharacterArt();
 
@@ -85,6 +93,8 @@ namespace STSlike.Presentation.UI
         {
             if (_presenter != null)
                 _presenter.Changed -= Refresh;
+            if (_display != null)
+                _display.Changed -= Refresh;
         }
 
         // Art is set once: it belongs to the character, not to combat state.
@@ -117,17 +127,19 @@ namespace STSlike.Presentation.UI
             SetText(deckCountText, run.DeckCount.ToString());
 
             PlayerView player = _presenter.Player;
-            SetText(playerHpText, $"{player.Hp}/{player.MaxHp}");
+            CombatDisplayState.Vitals shown = Shown(player);
+            SetText(playerHpText, $"{shown.Hp}/{player.MaxHp}");
             SetText(energyText, $"{player.Energy}/{player.MaxEnergy}");
-            SetBlock(playerBlockRoot, playerBlockText, player.Block);
+            SetBlock(playerBlockRoot, playerBlockText, shown.Block);
             SetText(drawCountText, player.DrawCount.ToString());
             SetText(discardCountText, player.DiscardCount.ToString());
             SetText(turnText, _presenter.Turn.ToString());
 
             EnemyView enemy = _presenter.Enemy;
+            CombatDisplayState.Vitals shownEnemy = Shown(enemy);
             SetText(enemyNameText, enemy.Name);
-            SetText(enemyHpText, $"{enemy.Hp}/{enemy.MaxHp}");
-            SetBlock(enemyBlockRoot, enemyBlockText, enemy.Block);
+            SetText(enemyHpText, $"{shownEnemy.Hp}/{enemy.MaxHp}");
+            SetBlock(enemyBlockRoot, enemyBlockText, shownEnemy.Block);
             SetText(enemyIntentText, enemy.IntentAmount > 0
                 ? $"{enemy.IntentKind} {enemy.IntentText}"
                 : enemy.IntentKind);
@@ -141,21 +153,37 @@ namespace STSlike.Presentation.UI
 
         /// <summary>
         /// Bars are drained here rather than in Refresh so they glide toward the
-        /// real value. The number changed the instant the card was played; the
-        /// bar arriving a moment later is what makes the hit read as landing
-        /// with the animation.
+        /// value on show. They chase the same figure the text prints — a bar and
+        /// a number disagreeing about how hurt someone is looks like a bug.
         /// </summary>
         private void Update()
         {
             if (_presenter == null)
                 return;
 
-            _playerFill = Approach(_playerFill, _presenter.Player.HpFraction);
+            PlayerView player = _presenter.Player;
+            _playerFill = Approach(_playerFill, Fraction(Shown(player).Hp, player.MaxHp));
             SetFill(playerHpFill, _playerFill);
 
-            _enemyFill = Approach(_enemyFill, _presenter.Enemy.HpFraction);
+            EnemyView enemy = _presenter.Enemy;
+            _enemyFill = Approach(_enemyFill, Fraction(Shown(enemy).Hp, enemy.MaxHp));
             SetFill(enemyHpFill, _enemyFill);
         }
+
+        // Health as the stage has played it so far. Falls through to the real
+        // numbers whenever nothing is waiting to be shown, so a HUD with no
+        // stage in the scene behaves exactly as it always did.
+        private CombatDisplayState.Vitals Shown(PlayerView player) =>
+            _display != null
+                ? _display.Of(ActorRef.Player, player.Hp, player.Block)
+                : new CombatDisplayState.Vitals(player.Hp, player.Block);
+
+        private CombatDisplayState.Vitals Shown(EnemyView enemy) =>
+            _display != null
+                ? _display.Of(ActorRef.Enemy(enemy.Slot), enemy.Hp, enemy.Block)
+                : new CombatDisplayState.Vitals(enemy.Hp, enemy.Block);
+
+        private static float Fraction(int hp, int maxHp) => maxHp <= 0 ? 0f : (float)hp / maxHp;
 
         private float Approach(float current, float target)
         {

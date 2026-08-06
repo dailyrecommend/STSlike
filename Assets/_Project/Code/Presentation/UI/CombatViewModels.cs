@@ -78,6 +78,9 @@ namespace STSlike.Presentation.UI
 
     public readonly struct EnemyView
     {
+        /// <summary>Which place in the room this one holds; -1 when unknown.</summary>
+        public readonly int Slot;
+
         public readonly string Name;
         public readonly int Hp;
         public readonly int MaxHp;
@@ -108,8 +111,9 @@ namespace STSlike.Presentation.UI
         public EnemyView(string name, int hp, int maxHp, int block,
             string intentKind, int intentAmount, int intentHits,
             string intentMotion = null, float intentImpactDelay = 0f,
-            float intentHitInterval = 0f)
+            float intentHitInterval = 0f, int slot = -1)
         {
+            Slot = slot;
             IntentImpactDelay = intentImpactDelay;
             IntentHitInterval = intentHitInterval;
             Name = name;

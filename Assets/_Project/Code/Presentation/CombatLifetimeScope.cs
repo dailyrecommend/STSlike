@@ -158,6 +158,10 @@ namespace STSlike.Presentation
             builder.Register<CombatPresenter>(Lifetime.Singleton);
             builder.Register<CardHoverChannel>(Lifetime.Singleton);
 
+            // Keeps the HUD from running ahead of the animation: the stage parks
+            // each blow here and releases it as it plays.
+            builder.Register<CombatDisplayState>(Lifetime.Singleton);
+
             // Scene components. RegisterComponentInHierarchy throws when the
             // component is absent, so each is registered only if it is actually
             // placed — that way the UI can be built up one binder at a time.

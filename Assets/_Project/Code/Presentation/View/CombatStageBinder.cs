@@ -35,10 +35,17 @@ namespace STSlike.Presentation.View
                  "at zero, so authored rhythms always win.")]
         [SerializeField, Min(0f)] private float reactionTime = 0.15f;
 
+        [Tooltip("Logs the gap actually achieved between blows, next to the one " +
+                 "asked for and the frame time that had to deliver it. A blow can " +
+                 "only land on a frame, so an interval near the frame time cannot " +
+                 "be exact — this is how to tell that apart from a real fault.")]
+        [SerializeField] private bool logHitTiming;
+
         private CombatPresenter _presenter;
         private CombatRunner _runner;
         private CharacterPresentation _character;
         private CombatSequencer _sequencer;
+        private CombatDisplayState _display;
 
         private ActorView _player;
         private readonly List<ActorView> _enemies = new List<ActorView>();
@@ -49,14 +56,25 @@ namespace STSlike.Presentation.View
         // always gives the interval authored for the move that landed it.
         private float _hitInterval;
 
+        // Unscaled time the next blow is due. Blows are scheduled against this
+        // running clock rather than by sleeping between them: a sleep rounds up
+        // to a frame boundary, and across an eight-hit flurry that rounding
+        // stacks into a visibly slower rhythm than the one authored.
+        private double _beat;
+
+        // Only for the timing log.
+        private double _lastBlow;
+
         [Inject]
         public void Construct(CombatPresenter presenter, CombatRunner runner,
-            CharacterPresentation character, CombatSequencer sequencer)
+            CharacterPresentation character, CombatSequencer sequencer,
+            CombatDisplayState display)
         {
             _presenter = presenter;
             _runner = runner;
             _character = character;
             _sequencer = sequencer;
+            _display = display;
 
             // Spawning waits for CombatStarted, not EncounterStarted: the
             // encounter is announced before the fight is built, so at that point
@@ -66,6 +84,10 @@ namespace STSlike.Presentation.View
             _presenter.EnemyActionStarted += OnEnemyAction;
             _presenter.Hit += OnHit;
             _presenter.Changed += SyncDeaths;
+
+            // A killing blow is only fatal once it has been played, so the last
+            // release of a flurry is what drops the body.
+            _display.Changed += SyncDeaths;
         }
 
         private void OnDestroy()
@@ -78,12 +100,18 @@ namespace STSlike.Presentation.View
             _presenter.EnemyActionStarted -= OnEnemyAction;
             _presenter.Hit -= OnHit;
             _presenter.Changed -= SyncDeaths;
+
+            if (_display != null)
+                _display.Changed -= SyncDeaths;
         }
 
         // ---- staging ----
 
         private void OnCombatStarted()
         {
+            // Blows owed by the last fight will never be played now.
+            _display.Clear();
+
             EnsurePlayer();
             SpawnEnemies();
         }
@@ -155,6 +183,7 @@ namespace STSlike.Presentation.View
             {
                 player?.Play(motion);
                 await Wait(windUp);
+                _beat = Time.unscaledTimeAsDouble;
             });
         }
 
@@ -175,6 +204,7 @@ namespace STSlike.Presentation.View
             {
                 actor?.Play(motion);
                 await Wait(action.ImpactDelay);
+                _beat = Time.unscaledTimeAsDouble;
             });
         }
 
@@ -186,12 +216,37 @@ namespace STSlike.Presentation.View
             // later actions will have moved the field on.
             float gap = _hitInterval > 0f ? _hitInterval : reactionTime;
 
+            // The rules have already applied this blow. Park the result so the
+            // HUD keeps showing the health from before it until the impact plays.
+            ActorRef victim = hit.Target;
+            CombatDisplayState.Vitals landed = Read(victim);
+            _display.Defer(victim, landed.Hp, landed.Block);
+
             // Only the reaction is queued here; whoever swung already started
             // their motion when the action began.
             _sequencer.Enqueue(async () =>
             {
+                _display.Reveal(victim);
                 target?.PlayHit();
-                await Wait(gap);
+
+                // A blow that arrives outside an action, or a queue that has
+                // fallen more than one beat behind, restarts the rhythm here
+                // instead of firing what it owes all at once.
+                double now = Time.unscaledTimeAsDouble;
+                if (_beat < now - gap)
+                    _beat = now;
+
+                if (logHitTiming)
+                {
+                    Debug.Log($"[Stage] blow: {(now - _lastBlow) * 1000.0:F1} ms since the last, " +
+                              $"asked for {gap * 1000f:F1} ms, frame is " +
+                              $"{Time.unscaledDeltaTime * 1000f:F1} ms " +
+                              $"({1f / Mathf.Max(Time.unscaledDeltaTime, 0.0001f):F0} fps)");
+                    _lastBlow = now;
+                }
+
+                _beat += gap;
+                await WaitUntil(_beat);
             });
         }
 
@@ -199,6 +254,22 @@ namespace STSlike.Presentation.View
         {
             if (seconds > 0f)
                 await UniTask.Delay(TimeSpan.FromSeconds(seconds), DelayType.UnscaledDeltaTime);
+        }
+
+        /// <summary>
+        /// Resumes on whichever frame sits closest to an absolute unscaled time.
+        ///
+        /// Waiting for the first frame strictly past the deadline rounds every
+        /// blow up, and on an interval near the frame time that bias is the
+        /// difference between a flurry and a jog. Stopping half a frame short
+        /// instead splits the error either side of the beat. Overshooting also
+        /// shortens the next beat rather than pushing it back, so a run of blows
+        /// keeps the average rate it was authored with.
+        /// </summary>
+        private static async UniTask WaitUntil(double unscaledTime)
+        {
+            while (Time.unscaledTimeAsDouble + Time.unscaledDeltaTime * 0.5 < unscaledTime)
+                await UniTask.Yield(PlayerLoopTiming.Update);
         }
 
 
@@ -213,9 +284,28 @@ namespace STSlike.Presentation.View
 
             for (int i = 0; i < _enemies.Count && i < enemies.Count; i++)
             {
-                if (enemies[i].Hp <= 0)
+                // Displayed health, not real: an enemy killed by the third blow
+                // of a flurry must stay standing until that blow has played.
+                ActorRef actor = ActorRef.Enemy(i);
+                if (_display.Of(actor, enemies[i].Hp, enemies[i].Block).Hp <= 0)
                     _enemies[i]?.PlayDeath();
             }
+        }
+
+        /// <summary>The figure's health as the rules have it right now.</summary>
+        private CombatDisplayState.Vitals Read(ActorRef actor)
+        {
+            if (actor.IsPlayer)
+            {
+                PlayerView player = _presenter.Player;
+                return new CombatDisplayState.Vitals(player.Hp, player.Block);
+            }
+
+            IReadOnlyList<EnemyView> enemies = _presenter.Enemies;
+            int index = actor.EnemyIndex;
+            return index >= 0 && index < enemies.Count
+                ? new CombatDisplayState.Vitals(enemies[index].Hp, enemies[index].Block)
+                : default;
         }
 
         private ActorView Resolve(ActorRef actor)

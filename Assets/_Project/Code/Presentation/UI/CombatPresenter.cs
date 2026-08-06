@@ -247,7 +247,8 @@ namespace STSlike.Presentation.UI
                 enemy.Intent.Type.ToString(), enemy.Intent.Amount, enemy.Intent.Hits,
                 MotionFor(slot, enemy.Intent.MoveIndex),
                 ImpactDelayFor(slot, enemy.Intent.MoveIndex),
-                HitIntervalFor(slot, enemy.Intent.MoveIndex));
+                HitIntervalFor(slot, enemy.Intent.MoveIndex),
+                slot);
         }
 
         /// <summary>Looks up the motion authored beside this step of the enemy's routine.</summary>

@@ -40,6 +40,13 @@ namespace STSlike.Presentation.View
         [Tooltip("Used when the clip length cannot be read.")]
         [SerializeField, Min(0f)] private float idleFallbackDelay = 1f;
 
+        [Tooltip("Seconds of blend when a motion starts. 0 snaps to the first " +
+                 "frame — which is what makes a repeated motion read as a fresh " +
+                 "one. Raise it if a change of pose is too abrupt, at the cost " +
+                 "of two quick motions bleeding into each other. The flinch " +
+                 "always snaps regardless.")]
+        [SerializeField, Min(0f)] private float motionBlend;
+
         [Tooltip("Played when this figure is hit. Leave empty to skip.")]
         [SerializeField] private string hitTrigger = "Hit";
 
@@ -87,16 +94,21 @@ namespace STSlike.Presentation.View
             if (_dead)
                 return;
 
-            Fire(Resolve(motion));
+            Restart(Resolve(motion), motionBlend);
             ScheduleIdle();
         }
 
+        /// <summary>
+        /// Plays the flinch. Always snaps, whatever the blend is set to: blows
+        /// can land closer together than any blend is long, and a flurry has to
+        /// read as separate hits.
+        /// </summary>
         public void PlayHit()
         {
             if (_dead)
                 return;
 
-            Fire(hitTrigger);
+            Restart(Resolve(hitTrigger), 0f);
             ScheduleIdle();
         }
 
@@ -105,7 +117,7 @@ namespace STSlike.Presentation.View
         {
             StopIdleWatch();
             if (!_dead)
-                Fire(Resolve(idleMotion));
+                Restart(Resolve(idleMotion), motionBlend);
         }
 
         public void PlayDeath()
@@ -115,7 +127,7 @@ namespace STSlike.Presentation.View
 
             StopIdleWatch();   // a corpse must not stand back up
             _dead = true;
-            Fire(deathTrigger);
+            Restart(Resolve(deathTrigger), motionBlend);
 
             if (!hideOnDeath)
                 return;
@@ -171,7 +183,12 @@ namespace STSlike.Presentation.View
             float wait = idleFallbackDelay;
             if (animator != null)
             {
-                AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+                // Mid-blend the current state is still the one being left, so
+                // the motion just asked for is the *next* one.
+                AnimatorStateInfo state = animator.IsInTransition(0)
+                    ? animator.GetNextAnimatorStateInfo(0)
+                    : animator.GetCurrentAnimatorStateInfo(0);
+
                 if (!state.loop && state.length > 0f)
                     wait = state.length;
             }
@@ -180,7 +197,7 @@ namespace STSlike.Presentation.View
 
             _idleWatch = null;
             if (!_dead)
-                Fire(Resolve(idleMotion));
+                Restart(Resolve(idleMotion), motionBlend);
         }
 
         private string Resolve(string motion)
@@ -199,30 +216,45 @@ namespace STSlike.Presentation.View
         private void HideCorpse() => gameObject.SetActive(false);
 
         /// <summary>
-        /// Plays a motion by name, accepting either way an Animator is usually
-        /// set up: a Trigger parameter, or a state to jump straight to. Rigs
-        /// built by dropping clips in as states have no triggers at all, and
-        /// requiring them was why nothing played.
+        /// Plays a motion by name, from the beginning, interrupting itself if it
+        /// is already running.
+        ///
+        /// The state is tried before a trigger of the same name, which is the
+        /// opposite of what an Animator is usually driven with. A trigger is
+        /// consumed into a transition, so asking for a motion that is already
+        /// running does nothing at all — the second of two quick attacks, or the
+        /// second blow of a flurry, would simply be swallowed. Only a state can
+        /// be rewound. Rigs built by dropping clips in have no triggers anyway.
         /// </summary>
-        private void Fire(string motion)
+        private void Restart(string motion, float blend)
         {
             if (animator == null || string.IsNullOrEmpty(motion))
                 return;
 
-            if (HasTrigger(motion))
-            {
-                animator.SetTrigger(motion);
-                return;
-            }
-
             int hash = Animator.StringToHash(motion);
             for (int layer = 0; layer < animator.layerCount; layer++)
             {
-                if (animator.HasState(layer, hash))
-                {
+                if (!animator.HasState(layer, hash))
+                    continue;
+
+                // The explicit zero is what rewinds it: without a start time,
+                // playing the state already running is ignored.
+                if (blend > 0f)
+                    animator.CrossFadeInFixedTime(hash, blend, layer, 0f);
+                else
                     animator.Play(hash, layer, 0f);
-                    return;
-                }
+                return;
+            }
+
+            // No state to jump to, so a trigger is all that is left. It cannot
+            // rewind, but clearing it first at least stops requests that arrived
+            // faster than the Animator could consume them from queueing up and
+            // playing late, after the action they belonged to is over.
+            if (HasTrigger(motion))
+            {
+                animator.ResetTrigger(motion);
+                animator.SetTrigger(motion);
+                return;
             }
 
             if (logMissingMotions)
