@@ -15,6 +15,10 @@ namespace STSlike.Domain.Cards
         string Id { get; }
         int Cost { get; }
         CardType Type { get; }
+
+        /// <summary>Who the effects apply to, and whether the player picks.</summary>
+        CardTarget Target { get; }
+
         CardRarity Rarity { get; }
         IReadOnlyList<ICardEffect> Effects { get; }
     }

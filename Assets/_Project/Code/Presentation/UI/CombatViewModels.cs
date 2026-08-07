@@ -143,6 +143,7 @@ namespace STSlike.Presentation.UI
 
         public readonly Sprite Artwork;
         public readonly CardType Type;
+        public readonly CardTarget Target;
         public readonly CardRarity Rarity;
 
         /// <summary>Motion the character plays for this card.</summary>
@@ -154,10 +155,19 @@ namespace STSlike.Presentation.UI
         /// <summary>Gap between blows when this card hits more than once.</summary>
         public readonly float HitInterval;
 
+        /// <summary>
+        /// Whether playing this needs an enemy picked first. Read from the
+        /// card's authored target, never from its type — an attack can sweep
+        /// the room and a skill can carry a debuff that has to be aimed.
+        /// </summary>
+        public bool NeedsTarget => Target == CardTarget.SingleEnemy;
+
         public CardView(int handIndex, string id, int cost, bool isPlayable,
             string name, string description, Sprite artwork, CardType type, CardRarity rarity,
-            string animationTrigger = null, float impactDelay = 0f, float hitInterval = 0f)
+            string animationTrigger = null, float impactDelay = 0f, float hitInterval = 0f,
+            CardTarget target = CardTarget.SingleEnemy)
         {
+            Target = target;
             AnimationTrigger = animationTrigger;
             ImpactDelay = impactDelay;
             HitInterval = hitInterval;

@@ -38,7 +38,7 @@ namespace STSlike.Presentation.UI
         [SerializeField] private CanvasGroup fadeGroup;
 
         [Tooltip("Nodes that cannot be travelled to from where the player stands.")]
-        [SerializeField, Range(0f, 1f)] private float unreachableAlpha = 0.4f;
+        [SerializeField, Range(0f, 1f)] private float unreachableAlpha = 0.8f;
 
         [Header("Cleared")]
         [Tooltip("Nodes already travelled through on this run.")]

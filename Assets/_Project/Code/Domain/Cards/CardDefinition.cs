@@ -14,13 +14,16 @@ namespace STSlike.Domain.Cards
         public string Id { get; }
         public int Cost { get; }
         public CardType Type { get; }
+        public CardTarget Target { get; }
         public CardRarity Rarity { get; }
         public IReadOnlyList<ICardEffect> Effects { get; }
 
         public CardDefinition(string id, int cost, IReadOnlyList<ICardEffect> effects,
-            CardType type = CardType.Attack, CardRarity rarity = CardRarity.Common)
+            CardType type = CardType.Attack, CardRarity rarity = CardRarity.Common,
+            CardTarget target = CardTarget.SingleEnemy)
         {
             Type = type;
+            Target = target;
             Rarity = rarity;
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("Id must be provided.", nameof(id));

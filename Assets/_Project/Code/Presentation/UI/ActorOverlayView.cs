@@ -42,6 +42,16 @@ namespace STSlike.Presentation.UI
         [SerializeField] private GameObject blockRoot;
         [SerializeField] private TMP_Text blockText;
 
+        [Header("Targeting")]
+        [Tooltip("Shown on every enemy while a card is looking for a target: " +
+                 "'this one can be hit'. The click itself lands on the model, " +
+                 "not here — nothing in this panel is meant to be clickable.")]
+        [SerializeField] private GameObject targetableHighlight;
+
+        [Tooltip("Shown on the one the pointer is actually over: 'this is where " +
+                 "the card would land'. Make it read louder than the one above.")]
+        [SerializeField] private GameObject targetedHighlight;
+
         [Header("Intent (switched off for the player)")]
         [SerializeField] private GameObject intentRoot;
         [SerializeField] private TMP_Text intentText;
@@ -57,6 +67,22 @@ namespace STSlike.Presentation.UI
 
         /// <summary>Cached because the binder moves this every frame.</summary>
         public RectTransform Rect => _rect != null ? _rect : _rect = (RectTransform)transform;
+
+        /// <summary>
+        /// Says whether this figure is a candidate for the card being aimed, and
+        /// whether it is the one under the pointer.
+        /// </summary>
+        public void SetTargeting(bool targetable, bool targeted)
+        {
+            Show(targetableHighlight, targetable);
+            Show(targetedHighlight, targeted);
+        }
+
+        private static void Show(GameObject target, bool visible)
+        {
+            if (target != null && target.activeSelf != visible)
+                target.SetActive(visible);
+        }
 
         /// <summary>
         /// Draws one figure. Health comes in already resolved to what the player

@@ -18,6 +18,14 @@ namespace STSlike.Data
         [SerializeField] private string id;
         [SerializeField, Min(0)] private int cost;
         [SerializeField] private CardType type = CardType.Attack;
+
+        [Tooltip("Who this applies to. Only Single Enemy asks the player to pick " +
+                 "one — a sweeping attack, a random one, and anything you do to " +
+                 "yourself all resolve on the spot. Set this from what the card " +
+                 "does, not from its type: a skill that lands a debuff needs a " +
+                 "target just as much as a strike does.")]
+        [SerializeField] private CardTarget target = CardTarget.SingleEnemy;
+
         [SerializeField] private CardRarity rarity = CardRarity.Common;
 
         [SerializeReference, SerializeReferenceDropdown]
@@ -50,6 +58,7 @@ namespace STSlike.Data
         public string Id => id;
         public int Cost => cost;
         public CardType Type => type;
+        public CardTarget Target => target;
         public CardRarity Rarity => rarity;
         public IReadOnlyList<ICardEffect> Effects => effects;
 
@@ -75,12 +84,14 @@ namespace STSlike.Data
         /// are normally created via the Create menu and filled in the inspector.
         /// </summary>
         public static CardData Create(string id, int cost, List<ICardEffect> effects,
-            CardType type = CardType.Attack, CardRarity rarity = CardRarity.Common)
+            CardType type = CardType.Attack, CardRarity rarity = CardRarity.Common,
+            CardTarget target = CardTarget.SingleEnemy)
         {
             var data = CreateInstance<CardData>();
             data.id = id;
             data.cost = cost;
             data.type = type;
+            data.target = target;
             data.rarity = rarity;
             data.effects = effects ?? new List<ICardEffect>();
             return data;

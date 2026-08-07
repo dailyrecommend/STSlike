@@ -158,6 +158,10 @@ namespace STSlike.Presentation
             builder.Register<CombatPresenter>(Lifetime.Singleton);
             builder.Register<CardHoverChannel>(Lifetime.Singleton);
 
+            // Which card is picked up but not yet thrown. Shared by the hand,
+            // which raises it, and the stage, which offers targets for it.
+            builder.Register<CardSelection>(Lifetime.Singleton);
+
             // Keeps the HUD from running ahead of the animation: the stage parks
             // each blow here and releases it as it plays.
             builder.Register<CombatDisplayState>(Lifetime.Singleton);
@@ -176,15 +180,16 @@ namespace STSlike.Presentation
 
             if (FindFirstObjectByType<CombatStageBinder>(FindObjectsInactive.Include) != null)
             {
-                // Also as IActorAnchors: the floating panels ask it where each
-                // figure is and nothing else about the stage.
+                // Also as IActorStage: the panels ask it where each figure is,
+                // and the picker asks it who a clicked collider belongs to.
                 builder.RegisterComponentInHierarchy<CombatStageBinder>()
                     .AsSelf()
-                    .As<IActorAnchors>();
+                    .As<IActorStage>();
 
-                // Only wired up alongside the stage — panels with nothing to
-                // float over have no anchors to ask for.
+                // Only wired up alongside the stage — neither has anything to
+                // point at without models.
                 RegisterIfPresent<ActorOverlayBinder>(builder);
+                RegisterIfPresent<ActorTargetingInput>(builder);
             }
         }
 

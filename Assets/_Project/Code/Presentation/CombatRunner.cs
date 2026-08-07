@@ -69,7 +69,7 @@ namespace STSlike.Presentation
             CurrentEnemyData = chosen;
 
             var context = new CombatContext(_run.Player, enemies);
-            Current = new CombatManager(context, _bus, _config.CardsPerTurn);
+            Current = new CombatManager(context, _bus, _config.CardsPerTurn, _rng);
             Current.StartCombat(_run.Cards);
         }
 

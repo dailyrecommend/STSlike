@@ -50,16 +50,31 @@ namespace STSlike.Presentation.UI
         [Tooltip("Straighten the hovered card so it is easy to read.")]
         [SerializeField] private bool straightenOnHover = true;
 
+        [Header("Aiming")]
+        [Tooltip("Where a card waits while it is looking for a target, measured " +
+                 "from the container center. Put it clear of the row: the point " +
+                 "is that the card has visibly left the hand.")]
+        [SerializeField] private Vector2 aimPosition = new Vector2(0f, 260f);
+
+        [Tooltip("How much the aimed card grows.")]
+        [SerializeField] private float aimScale = 1.25f;
+
         [Header("Motion")]
         [Tooltip("How quickly cards slide to their place. 0 = snap instantly.")]
         [SerializeField] private float smoothing = 14f;
 
         private RectTransform _rect;
         private CardHoverChannel _hover;
+        private CardSelection _selection;
         private readonly List<RectTransform> _ordered = new List<RectTransform>();
+        private readonly List<RectTransform> _row = new List<RectTransform>();
 
         [Inject]
-        public void Construct(CardHoverChannel hover) => _hover = hover;
+        public void Construct(CardHoverChannel hover, CardSelection selection)
+        {
+            _hover = hover;
+            _selection = selection;
+        }
 
         private void Awake()
         {
@@ -73,6 +88,19 @@ namespace STSlike.Presentation.UI
                     "it would override the hand layout.", this);
                 group.enabled = false;
             }
+
+            // A size fitter is worse than a rival: the spacing is worked out
+            // from this rect's width, so a fitter that resizes the rect from its
+            // children closes a loop — cards move, the container resizes, the
+            // spacing changes, the cards move again. That reads as a permanent
+            // shiver rather than as a layout being wrong.
+            if (TryGetComponent(out ContentSizeFitter fitter))
+            {
+                Debug.LogWarning(
+                    $"[HandCardLayout] Disabling ContentSizeFitter on '{name}': " +
+                    "sizing this rect from the cards it positions makes them jitter.", this);
+                fitter.enabled = false;
+            }
         }
 
         // LateUpdate so it runs after the hand has been rebuilt this frame.
@@ -81,18 +109,29 @@ namespace STSlike.Presentation.UI
         private void Arrange()
         {
             CollectCards();
-
-            int count = _ordered.Count;
-            if (count == 0)
+            if (_ordered.Count == 0)
                 return;
 
+            RectTransform hovered = HoveredCard();
+            RectTransform aimed = AimedCard();
+
+            // A card that has been picked up is no longer part of the row, so
+            // the hand closes over the gap it left instead of holding its place
+            // open. Laid out from this shorter list, the rest re-space at once.
+            _row.Clear();
+            foreach (RectTransform card in _ordered)
+            {
+                if (card != aimed)
+                    _row.Add(card);
+            }
+
+            int count = _row.Count;
             float spacing = ResolveSpacing(count);
             float startX = -spacing * (count - 1) * 0.5f;
-            RectTransform hovered = HoveredCard();
 
             for (int i = 0; i < count; i++)
             {
-                RectTransform card = _ordered[i];
+                RectTransform card = _row[i];
                 bool isHovered = card == hovered;
 
                 // -1 at the left edge, 0 in the middle, +1 at the right edge.
@@ -136,6 +175,44 @@ namespace STSlike.Presentation.UI
 
             if (hovered != null)
                 hovered.SetAsLastSibling();
+
+            PlaceAimed(aimed, aimed != null && aimed == hovered);
+        }
+
+        /// <summary>
+        /// Parks the picked-up card in the middle. It ignores the row, the fan
+        /// and the hover lift — it has left the hand — but still answers to the
+        /// pointer with a little more size, so it stays clear that clicking it
+        /// again does something. The whole card moves rather than just its
+        /// visual child, so clicking it means clicking where it appears to be.
+        /// </summary>
+        private void PlaceAimed(RectTransform aimed, bool hovered)
+        {
+            if (aimed == null)
+                return;
+
+            Apply(aimed, aimPosition, Quaternion.identity,
+                hovered ? aimScale * hoverScale : aimScale);
+
+            if (HasSeparateVisual(aimed))
+                ApplyHover(aimed, 0f, 0f, 1f);
+
+            // Above even the hovered card: it is the one being acted on.
+            aimed.SetAsLastSibling();
+        }
+
+        private RectTransform AimedCard()
+        {
+            if (_selection == null || !_selection.IsAiming)
+                return null;
+
+            foreach (RectTransform card in _ordered)
+            {
+                if (card.TryGetComponent(out CardViewBinder binder)
+                    && binder.View.HandIndex == _selection.HandIndex)
+                    return card;
+            }
+            return null;
         }
 
         /// <summary>

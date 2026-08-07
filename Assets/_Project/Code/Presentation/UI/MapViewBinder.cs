@@ -56,6 +56,11 @@ namespace STSlike.Presentation.UI
         [SerializeField] private float jitter;
         [SerializeField] private float lineThickness = 6f;
 
+        [Tooltip("How far a route stops short of the nodes at each end. Set it " +
+                 "to a little more than the node's radius so the icon sits in a " +
+                 "clear gap instead of having lines run into it.")]
+        [SerializeField, Min(0f)] private float nodeGap = 26f;
+
         [Tooltip("Grow the container to fit the whole map, so it can be scrolled.")]
         [SerializeField] private bool resizeContainer = true;
 
@@ -341,15 +346,30 @@ namespace STSlike.Presentation.UI
             rect.anchorMax = new Vector2(0.5f, 0f);
         }
 
-        /// <summary>Positions a thin rect so it spans from one node to the other.</summary>
+        /// <summary>
+        /// Positions a thin rect so it runs between two nodes, stopping short of
+        /// both. Routes drawn centre to centre disappear under the icons and
+        /// collide where several meet, so a route reads as ending at a node
+        /// rather than skewering it.
+        /// </summary>
         private void Stretch(RectTransform line, Vector2 from, Vector2 to)
         {
             Vector2 delta = to - from;
+            float length = delta.magnitude;
+
+            // Both ends pull in, so a very short route shrinks away rather than
+            // turning inside out and drawing backwards.
+            float trim = Mathf.Min(nodeGap, length * 0.45f);
+            Vector2 step = length > 0f ? delta / length : Vector2.zero;
+
+            Vector2 start = from + step * trim;
+            Vector2 end = to - step * trim;
+            Vector2 span = end - start;
 
             AnchorToBottomCenter(line);
             line.pivot = new Vector2(0.5f, 0.5f);
-            line.anchoredPosition = from + delta * 0.5f;
-            line.sizeDelta = new Vector2(delta.magnitude, lineThickness);
+            line.anchoredPosition = start + span * 0.5f;
+            line.sizeDelta = new Vector2(span.magnitude, lineThickness);
             line.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
         }
     }

@@ -336,8 +336,15 @@ namespace STSlike.Presentation.UI
 
         // ---- commands the UI calls ----
 
-        /// <summary>Plays the card at that hand slot. Out-of-range and unaffordable calls are ignored.</summary>
-        public void PlayCard(int handIndex)
+        /// <summary>
+        /// Plays the card at that hand slot, at the enemy in that slot of the
+        /// room. Pass -1 to let it fall to the first opponent still standing,
+        /// which is what an unaimed card wants.
+        ///
+        /// Out-of-range and unaffordable calls are ignored rather than throwing:
+        /// a view is allowed to be a frame out of date.
+        /// </summary>
+        public void PlayCard(int handIndex, int enemySlot = -1)
         {
             CombatManager manager = _runner.Current;
             if (manager == null || !IsInCombat)
@@ -347,7 +354,19 @@ namespace STSlike.Presentation.UI
             if (handIndex < 0 || handIndex >= _handCards.Count)
                 return;
 
-            manager.PlayCard(_handCards[handIndex], manager.Context.Enemy);
+            manager.PlayCard(_handCards[handIndex], EnemyAt(enemySlot, manager));
+        }
+
+        private static Domain.Actors.Combatant EnemyAt(int slot, CombatManager manager)
+        {
+            IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+
+            // A slot that has emptied since the click — the last blow of a
+            // flurry killed it — falls back rather than fizzling the card.
+            if (slot >= 0 && slot < enemies.Count && !enemies[slot].IsDead)
+                return enemies[slot];
+
+            return manager.Context.Enemy;
         }
 
         public void EndTurn()
@@ -532,7 +551,8 @@ namespace STSlike.Presentation.UI
                 name, description, art, card.Definition.Type, card.Definition.Rarity,
                 data != null ? data.AnimationTrigger : null,
                 data != null ? data.ImpactDelay : 0f,
-                data != null ? data.HitInterval : 0f);
+                data != null ? data.HitInterval : 0f,
+                card.Definition.Target);
         }
 
         /// <summary>

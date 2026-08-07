@@ -6,6 +6,7 @@ using STSlike.Domain.Cards;
 using STSlike.Domain.Commands;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
+using STSlike.Domain.Randomness;
 
 namespace STSlike.Domain.Combat
 {
@@ -20,20 +21,32 @@ namespace STSlike.Domain.Combat
         private readonly CombatContext _context;
         private readonly IEventBus _bus;
         private readonly int _cardsPerTurn;
+        private readonly IRng _rng;
         private readonly CommandInvoker _invoker = new CommandInvoker();
+
+        // Reused so that playing a card allocates nothing.
+        private readonly List<Combatant> _targets = new List<Combatant>();
+        private readonly List<Combatant> _living = new List<Combatant>();
 
         public CombatContext Context => _context;
 
         /// <summary>Commands executed so far this combat (for replay/debugging).</summary>
         public IReadOnlyList<ICommand> CommandHistory => _invoker.History;
 
-        public CombatManager(CombatContext context, IEventBus bus, int cardsPerTurn = 5)
+        /// <summary>
+        /// The random source is optional: only cards that scatter their target
+        /// need one, and a fight built without one simply resolves those on the
+        /// first enemy standing rather than failing to start.
+        /// </summary>
+        public CombatManager(CombatContext context, IEventBus bus, int cardsPerTurn = 5,
+            IRng rng = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _bus = bus ?? throw new ArgumentNullException(nameof(bus));
             if (cardsPerTurn < 0)
                 throw new ArgumentOutOfRangeException(nameof(cardsPerTurn));
             _cardsPerTurn = cardsPerTurn;
+            _rng = rng;
         }
 
         public void StartCombat(IEnumerable<Card> startingDeck)
@@ -67,10 +80,15 @@ namespace STSlike.Domain.Combat
             player.SpendEnergy(card.Cost);
             _bus.Publish(new CardPlayedEvent(card));
 
-            Combatant effectTarget = target ?? _context.Enemy;
-            var effectContext = new EffectContext(player, effectTarget, _bus);
-            foreach (ICardEffect effect in card.Effects)
-                _invoker.Enqueue(new EffectCommand(effect, effectContext));
+            // One pass per recipient. A card that sweeps the room runs its
+            // effects once per enemy, so block is spent and events are raised
+            // per victim exactly as they would be for separate cards.
+            foreach (Combatant victim in ResolveTargets(card, target))
+            {
+                var effectContext = new EffectContext(player, victim, _bus);
+                foreach (ICardEffect effect in card.Effects)
+                    _invoker.Enqueue(new EffectCommand(effect, effectContext));
+            }
             _invoker.ExecuteAll();
 
             player.Deck.DiscardFromHand(card);
@@ -79,6 +97,72 @@ namespace STSlike.Domain.Combat
             _bus.Publish(new CardResolvedEvent(card));
             PublishEndedIfOver();
             return true;
+        }
+
+        /// <summary>
+        /// Everyone this card lands on.
+        ///
+        /// The mode is authored on the card rather than inferred from its type:
+        /// a sweeping attack asks the player for nothing, and a skill that lands
+        /// a debuff asks for exactly as much as a strike does. An empty result
+        /// is legitimate — a room sweep with nobody left standing fizzles, and
+        /// the card is still spent and discarded.
+        /// </summary>
+        private List<Combatant> ResolveTargets(Card card, Combatant picked)
+        {
+            _targets.Clear();
+
+            switch (card.Definition.Target)
+            {
+                case CardTarget.Self:
+                    _targets.Add(_context.Player);
+                    break;
+
+                case CardTarget.AllEnemies:
+                    foreach (EnemyState enemy in _context.Enemies)
+                    {
+                        if (!enemy.IsDead)
+                            _targets.Add(enemy);
+                    }
+                    break;
+
+                case CardTarget.RandomEnemy:
+                    Combatant rolled = RandomLivingEnemy();
+                    if (rolled != null)
+                        _targets.Add(rolled);
+                    break;
+
+                default:
+                    // The pick, or the first one standing when a view played
+                    // this without naming anybody.
+                    Combatant single = picked ?? _context.Enemy;
+                    if (single != null)
+                        _targets.Add(single);
+                    break;
+            }
+
+            return _targets;
+        }
+
+        /// <summary>
+        /// Drawn from the run's seeded stream, so a seed reproduces which enemy
+        /// a scattering card happened to hit. Without a source it falls to the
+        /// first one standing rather than reaching for a global RNG, which would
+        /// quietly break that guarantee.
+        /// </summary>
+        private Combatant RandomLivingEnemy()
+        {
+            _living.Clear();
+            foreach (EnemyState enemy in _context.Enemies)
+            {
+                if (!enemy.IsDead)
+                    _living.Add(enemy);
+            }
+
+            if (_living.Count == 0)
+                return null;
+
+            return _rng != null ? _living[_rng.Next(_living.Count)] : _living[0];
         }
 
         /// <summary>

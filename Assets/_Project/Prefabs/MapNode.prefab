@@ -158,9 +158,13 @@ MonoBehaviour:
   currentMarker: {fileID: 7521609556459070720}
   reachableMarker: {fileID: 7521609556459070720}
   fadeGroup: {fileID: 11857473312046350}
-  unreachableAlpha: 0.8
-  clearedAlpha: 0.8
-  clearedTint: {r: 0, g: 0, b: 0, a: 1}
+  unreachableAlpha: 1
+  unreachableTint: {r: 0.26415092, g: 0.26415092, b: 0.26415092, a: 1}
+  clearedAlpha: 1
+  clearedTint: {r: 0.26666668, g: 0.26666668, b: 0.26666668, a: 1}
+  hoverScale: 1.25
+  hoverSmoothing: 14
+  hoverOnlyWhenReachable: 0
 --- !u!225 &11857473312046350
 CanvasGroup:
   m_ObjectHideFlags: 0

@@ -16,7 +16,7 @@ namespace STSlike.Presentation.View
     /// layer stay independent — either can be rebuilt without disturbing the
     /// other, and neither can reach into the rules.
     /// </summary>
-    public sealed class CombatStageBinder : MonoBehaviour, IActorAnchors
+    public sealed class CombatStageBinder : MonoBehaviour, IActorStage
     {
         [SerializeField] private CombatArena arena;
 
@@ -317,6 +317,35 @@ namespace STSlike.Presentation.View
         {
             ActorView view = Resolve(actor);
             return view != null ? view.UiAnchor : null;
+        }
+
+        /// <summary>
+        /// Names the figure a piece of geometry belongs to. The search walks up
+        /// from whatever was hit, so a collider anywhere on a model — on a limb,
+        /// on a child of the rig — identifies the whole figure.
+        /// </summary>
+        public bool TryIdentify(Transform hit, out ActorRef actor)
+        {
+            actor = ActorRef.None;
+            if (hit == null)
+                return false;
+
+            ActorView view = hit.GetComponentInParent<ActorView>();
+            if (view == null || view.IsDead)
+                return false;
+
+            if (view == _player)
+            {
+                actor = ActorRef.Player;
+                return true;
+            }
+
+            int index = _enemies.IndexOf(view);
+            if (index < 0)
+                return false;
+
+            actor = ActorRef.Enemy(index);
+            return true;
         }
 
         private ActorView Resolve(ActorRef actor)

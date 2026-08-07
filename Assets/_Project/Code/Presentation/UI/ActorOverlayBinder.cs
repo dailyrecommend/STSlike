@@ -33,7 +33,8 @@ namespace STSlike.Presentation.UI
 
         private CombatPresenter _presenter;
         private CombatDisplayState _display;
-        private IActorAnchors _anchors;
+        private IActorStage _stage;
+        private CardSelection _selection;
 
         private readonly List<ActorOverlayView> _panels = new List<ActorOverlayView>();
         private Canvas _canvas;
@@ -44,14 +45,16 @@ namespace STSlike.Presentation.UI
 
         [Inject]
         public void Construct(CombatPresenter presenter, CombatDisplayState display,
-            IActorAnchors anchors)
+            IActorStage stage, CardSelection selection)
         {
             _presenter = presenter;
             _display = display;
-            _anchors = anchors;
+            _stage = stage;
+            _selection = selection;
 
             _presenter.Changed += MarkDirty;
             _display.Changed += MarkDirty;
+            _selection.Changed += MarkDirty;
         }
 
         private void OnDestroy()
@@ -60,6 +63,8 @@ namespace STSlike.Presentation.UI
                 _presenter.Changed -= MarkDirty;
             if (_display != null)
                 _display.Changed -= MarkDirty;
+            if (_selection != null)
+                _selection.Changed -= MarkDirty;
         }
 
         private void MarkDirty() => _dirty = true;
@@ -80,7 +85,7 @@ namespace STSlike.Presentation.UI
                 ActorOverlayView panel = _panels[i];
 
                 CombatDisplayState.Vitals shown = _display.Of(actor.Actor, actor.Hp, actor.Block);
-                Transform anchor = _anchors?.AnchorFor(actor.Actor);
+                Transform anchor = _stage?.AnchorFor(actor.Actor);
 
                 // A figure with no model yet, one that has been struck down, or
                 // a run that has left combat entirely: nothing to float over.
@@ -102,10 +107,29 @@ namespace STSlike.Presentation.UI
                     panel.ResetBar();
 
                 if (_dirty || !wasVisible)
+                {
                     panel.Bind(actor, shown.Hp, shown.Block);
+                    BindTargeting(panel, actor);
+                }
             }
 
             _dirty = false;
+        }
+
+        /// <summary>
+        /// Lights this figure up while a card is looking for a target. Only
+        /// enemies are offered — the cards that need aiming are the ones that
+        /// hit somebody else. The click lands on the model itself, so nothing
+        /// here is clickable; the panel only says what is possible.
+        /// </summary>
+        private void BindTargeting(ActorOverlayView panel, ActorHudView actor)
+        {
+            bool targetable = actor.IsEnemy && _selection.IsAiming && _selection.NeedsTarget;
+            bool targeted = targetable
+                            && !_selection.Hovered.IsPlayer
+                            && _selection.Hovered.EnemyIndex == actor.Actor.EnemyIndex;
+
+            panel.SetTargeting(targetable, targeted);
         }
 
         /// <summary>

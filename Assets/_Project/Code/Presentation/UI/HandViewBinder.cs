@@ -1,11 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using VContainer;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace STSlike.Presentation.UI
 {
     /// <summary>
-    /// Keeps a row of card prefabs in sync with the hand.
+    /// Keeps a row of card prefabs in sync with the hand, and turns a click on
+    /// one into either a play or an aim.
     ///
     /// Instances are reused rather than destroyed and respawned: cards change
     /// several times per turn, and recreating them would fight any animation
@@ -20,12 +25,16 @@ namespace STSlike.Presentation.UI
         private readonly List<CardViewBinder> _spawned = new List<CardViewBinder>();
         private CombatPresenter _presenter;
         private CardHoverChannel _hover;
+        private CardSelection _selection;
 
         [Inject]
-        public void Construct(CombatPresenter presenter, CardHoverChannel hover)
+        public void Construct(CombatPresenter presenter, CardHoverChannel hover,
+            CardSelection selection)
         {
             _presenter = presenter;
             _hover = hover;
+            _selection = selection;
+
             _presenter.Changed += Refresh;
             Refresh();
         }
@@ -36,6 +45,92 @@ namespace STSlike.Presentation.UI
                 _presenter.Changed -= Refresh;
         }
 
+        /// <summary>
+        /// A click picks the card up rather than playing it.
+        ///
+        /// What a second click on the same card means depends on what the card
+        /// is still waiting for. One that needs a target is put back, because
+        /// the target is chosen somewhere else entirely; one that acts on the
+        /// player has nothing left to wait for, so clicking it again is the
+        /// confirmation. Right-click and Escape cancel either.
+        /// </summary>
+        private void OnCardClicked(CardView card)
+        {
+            if (_selection.HandIndex != card.HandIndex)
+            {
+                _selection.Select(card.HandIndex, card.NeedsTarget);
+                return;
+            }
+
+            _selection.Clear();
+
+            if (!card.NeedsTarget)
+                _presenter.PlayCard(card.HandIndex);
+        }
+
+        private void Update()
+        {
+            // Not on the click that picked the card up.
+            if (_selection == null || !_selection.IsAiming || _selection.JustSelected)
+                return;
+
+            if (CancelPressed())
+            {
+                _selection.Clear();
+                return;
+            }
+
+            // A card that acts on the player has nobody to be pointed at, so the
+            // click that commits it is simply one away from the UI. Handled here
+            // rather than with the target picking, which needs a stage; a card
+            // aimed at yourself should not depend on there being models.
+            if (!_selection.NeedsTarget && ClickPressed() && !OverUi())
+            {
+                int handIndex = _selection.HandIndex;
+                _selection.Clear();
+                _presenter.PlayCard(handIndex);
+            }
+        }
+
+        // A click on the hand, a panel or a popup belongs to that thing. Without
+        // this, picking a card up would immediately throw it again on the very
+        // click that picked it.
+        private static bool OverUi()
+        {
+            EventSystem events = EventSystem.current;
+            return events != null && events.IsPointerOverGameObject();
+        }
+
+        private static bool ClickPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Mouse.current != null)
+                return Mouse.current.leftButton.wasPressedThisFrame;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetMouseButtonDown(0);
+#else
+            return false;
+#endif
+        }
+
+        // Right-click and Escape both put an aimed card back. Kept working under
+        // either input backend, the same way the tooltip reads the pointer.
+        private static bool CancelPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+                return true;
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                return true;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape);
+#else
+            return false;
+#endif
+        }
+
         private void Refresh()
         {
             if (_presenter == null || cardPrefab == null)
@@ -43,6 +138,11 @@ namespace STSlike.Presentation.UI
 
             Transform parent = cardContainer != null ? cardContainer : transform;
             IReadOnlyList<CardView> hand = _presenter.Hand;
+
+            // The hand has been redealt or the fight is over, so whatever was
+            // being aimed is no longer that card — or any card.
+            if (_selection.HandIndex >= hand.Count || !_presenter.IsInCombat)
+                _selection.Clear();
 
             // Grow the pool to fit the current hand.
             while (_spawned.Count < hand.Count)
@@ -62,8 +162,7 @@ namespace STSlike.Presentation.UI
                     continue;
 
                 CardView view = hand[i];
-                int handIndex = view.HandIndex;
-                binder.Bind(view, () => _presenter.PlayCard(handIndex));
+                binder.Bind(view, () => OnCardClicked(view));
             }
         }
     }

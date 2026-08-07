@@ -15,14 +15,16 @@ MonoBehaviour:
   id: strike
   cost: 1
   type: 0
+  target: 0
   rarity: 0
   effects:
   - rid: 7859427291476262971
   displayName: Strike
   description: Deal {0}.
-  artwork: {fileID: 0}
+  artwork: {fileID: 21300000, guid: a9bc4d3855cfbdb4088cf149de09ffad, type: 3}
   animationTrigger: Attack
-  impactDelay: 0.3333
+  impactDelay: 0.2
+  hitInterval: 0
   references:
     version: 2
     RefIds:

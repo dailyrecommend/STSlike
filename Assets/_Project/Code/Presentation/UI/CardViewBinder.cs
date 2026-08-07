@@ -65,13 +65,22 @@ namespace STSlike.Presentation.UI
         public CardView View { get; private set; }
 
         /// <summary>
+        /// A visual set to the card itself counts as no visual at all. The
+        /// layout drives the root to its place in the row and the visual to its
+        /// hover offset; pointing both at one transform makes them fight, and
+        /// since an unhovered card's offset is zero, the row loses — every card
+        /// gets dragged back to the origin.
+        /// </summary>
+        private bool HasVisualChild => visual != null && visual != _rect;
+
+        /// <summary>
         /// What the hand layout animates on hover. Falls back to the card root
         /// when no separate visual child is assigned.
         /// </summary>
-        public RectTransform Visual => visual != null ? visual : _rect;
+        public RectTransform Visual => HasVisualChild ? visual : _rect;
 
         /// <summary>True when hover motion can move the pointer off the card.</summary>
-        public bool MovesHitArea => visual == null;
+        public bool MovesHitArea => !HasVisualChild;
 
         private void Awake()
         {
@@ -115,8 +124,11 @@ namespace STSlike.Presentation.UI
             SetText(nameText, view.Name);
             SetText(costText, view.Cost.ToString());
 
-            // Keep the prefab's placeholder art when a card has none of its own.
-            if (artwork != null && view.Artwork != null)
+            // Assigned unconditionally, including to null. These instances are
+            // pooled, so skipping a card that has no art of its own would leave
+            // whichever card sat in this slot before still showing — which reads
+            // as the artwork never updating at all.
+            if (artwork != null)
                 artwork.sprite = view.Artwork;
 
             ApplyTypeStyle(view.Type);
