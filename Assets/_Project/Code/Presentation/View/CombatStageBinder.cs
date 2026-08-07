@@ -16,7 +16,7 @@ namespace STSlike.Presentation.View
     /// layer stay independent — either can be rebuilt without disturbing the
     /// other, and neither can reach into the rules.
     /// </summary>
-    public sealed class CombatStageBinder : MonoBehaviour
+    public sealed class CombatStageBinder : MonoBehaviour, IActorAnchors
     {
         [SerializeField] private CombatArena arena;
 
@@ -306,6 +306,17 @@ namespace STSlike.Presentation.View
             return index >= 0 && index < enemies.Count
                 ? new CombatDisplayState.Vitals(enemies[index].Hp, enemies[index].Block)
                 : default;
+        }
+
+        /// <summary>
+        /// Hands the overlay the point it should float above. Null until the
+        /// models for this fight exist, which is what lets the overlay be built
+        /// without caring whether it or the stage was set up first.
+        /// </summary>
+        public Transform AnchorFor(ActorRef actor)
+        {
+            ActorView view = Resolve(actor);
+            return view != null ? view.UiAnchor : null;
         }
 
         private ActorView Resolve(ActorRef actor)

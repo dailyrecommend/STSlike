@@ -509,7 +509,7 @@ Transform:
   m_GameObject: {fileID: 290968911}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: -1.558, y: 0, z: -1.396}
+  m_LocalPosition: {x: -1.87, y: 0, z: -1.99}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -920,7 +920,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 82.3
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -946,13 +946,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.12030478, y: -0, z: -0, w: 0.992737}
-  m_LocalPosition: {x: 0, y: 1.285, z: -4.131}
+  m_LocalRotation: {x: 0.037594017, y: -0, z: -0, w: 0.9992931}
+  m_LocalPosition: {x: 0, y: 0.95, z: -4.131}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 13.819, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 4.309, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1365,8 +1365,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.View.CombatArena
   playerSlot: {fileID: 290968912}
   enemySlots:
-  - {fileID: 1814503608}
   - {fileID: 524828514}
+  - {fileID: 1814503608}
   - {fileID: 2047803589}
 --- !u!4 &524608793
 Transform:
@@ -1412,7 +1412,7 @@ Transform:
   m_GameObject: {fileID: 524828513}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 1.5, y: 0, z: -1.346}
+  m_LocalPosition: {x: 1.7, y: 0, z: -1.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2026,6 +2026,7 @@ GameObject:
   - component: {fileID: 778425162}
   - component: {fileID: 778425161}
   - component: {fileID: 778425166}
+  - component: {fileID: 778425167}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -2057,12 +2058,6 @@ MonoBehaviour:
   playerBlockRoot: {fileID: 0}
   energyText: {fileID: 327038444}
   energyIcon: {fileID: 1313052998}
-  enemyNameText: {fileID: 0}
-  enemyHpText: {fileID: 0}
-  enemyHpFill: {fileID: 0}
-  enemyBlockText: {fileID: 0}
-  enemyBlockRoot: {fileID: 0}
-  enemyIntentText: {fileID: 0}
   combatRoot: {fileID: 0}
   rewardRoot: {fileID: 0}
   runOverRoot: {fileID: 0}
@@ -2180,6 +2175,22 @@ MonoBehaviour:
   follow: 1
   offset: {x: 0, y: 220}
   keepOnScreen: 1
+--- !u!114 &778425167
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 778425160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e76219a93cfa7bd40ada1c840f40eabb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.UI.ActorOverlayBinder
+  container: {fileID: 778425165}
+  panelPrefab: {fileID: 7313472084407193612, guid: dba54d80f8bf4a04a9c3bd02a5e2a1cf, type: 3}
+  worldCamera: {fileID: 330585545}
+  offset: {x: 0, y: 140}
 --- !u!1 &789507209
 GameObject:
   m_ObjectHideFlags: 0
@@ -3602,8 +3613,8 @@ MonoBehaviour:
   rarityText: {fileID: 1718129904}
   descriptionText: {fileID: 2124795147}
   artwork: {fileID: 0}
-  follow: 1
-  offset: {x: 0, y: 220}
+  follow: 0
+  offset: {x: 0, y: 120}
   keepOnScreen: 1
 --- !u!1 &1407494456
 GameObject:
@@ -4901,6 +4912,7 @@ MonoBehaviour:
   placeholderPrefab: {fileID: 0}
   fallbackEnemyAttackMotion: Attack
   reactionTime: 0.15
+  logHitTiming: 0
 --- !u!1 &1767228475
 GameObject:
   m_ObjectHideFlags: 0
@@ -5063,7 +5075,7 @@ Transform:
   m_GameObject: {fileID: 1814503607}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.75, y: 0, z: -1.346}
+  m_LocalPosition: {x: 1.7, y: 0, z: -2.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5401,7 +5413,7 @@ Transform:
   m_GameObject: {fileID: 2047803588}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 2.25, y: 0, z: -1.346}
+  m_LocalPosition: {x: 1.7, y: 0, z: -1.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5990,7 +6002,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2318821799331414333, guid: 17a9c2de9371a0240b0711876b11df77, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.59
+      value: 1.79
       objectReference: {fileID: 0}
     - target: {fileID: 2318821799331414333, guid: 17a9c2de9371a0240b0711876b11df77, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5998,7 +6010,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2318821799331414333, guid: 17a9c2de9371a0240b0711876b11df77, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.36
+      value: -1.875
       objectReference: {fileID: 0}
     - target: {fileID: 2318821799331414333, guid: 17a9c2de9371a0240b0711876b11df77, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6059,7 +6071,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5488945114508674668, guid: 573ce0b7fa7e31347924418f62b69f0b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.537
+      value: -1.8490001
       objectReference: {fileID: 0}
     - target: {fileID: 5488945114508674668, guid: 573ce0b7fa7e31347924418f62b69f0b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6067,7 +6079,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5488945114508674668, guid: 573ce0b7fa7e31347924418f62b69f0b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.3854332
+      value: -1.9794332
       objectReference: {fileID: 0}
     - target: {fileID: 5488945114508674668, guid: 573ce0b7fa7e31347924418f62b69f0b, type: 3}
       propertyPath: m_LocalRotation.w

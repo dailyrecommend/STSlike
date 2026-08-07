@@ -33,13 +33,10 @@ namespace STSlike.Presentation.UI
         [SerializeField] private TMP_Text energyText;
         [SerializeField] private Image energyIcon;
 
-        [Header("Enemy")]
-        [SerializeField] private TMP_Text enemyNameText;
-        [SerializeField] private TMP_Text enemyHpText;
-        [SerializeField] private Image enemyHpFill;
-        [SerializeField] private TMP_Text enemyBlockText;
-        [SerializeField] private GameObject enemyBlockRoot;
-        [SerializeField] private TMP_Text enemyIntentText;
+        // Enemy name, health, block and intent are not here: they float over the
+        // models instead. A fight can hold several opponents, and a fixed panel
+        // can only ever describe one of them, which is worse than misleading —
+        // it quietly reports the wrong enemy's intent.
 
         [Header("Screens (shown/hidden by state)")]
         [SerializeField] private GameObject combatRoot;
@@ -64,7 +61,6 @@ namespace STSlike.Presentation.UI
         private CombatDisplayState _display;
 
         private float _playerFill = -1f;
-        private float _enemyFill = -1f;
 
         [Inject]
         public void Construct(CombatPresenter presenter, CharacterPresentation character,
@@ -135,15 +131,6 @@ namespace STSlike.Presentation.UI
             SetText(discardCountText, player.DiscardCount.ToString());
             SetText(turnText, _presenter.Turn.ToString());
 
-            EnemyView enemy = _presenter.Enemy;
-            CombatDisplayState.Vitals shownEnemy = Shown(enemy);
-            SetText(enemyNameText, enemy.Name);
-            SetText(enemyHpText, $"{shownEnemy.Hp}/{enemy.MaxHp}");
-            SetBlock(enemyBlockRoot, enemyBlockText, shownEnemy.Block);
-            SetText(enemyIntentText, enemy.IntentAmount > 0
-                ? $"{enemy.IntentKind} {enemy.IntentText}"
-                : enemy.IntentKind);
-
             SetActive(combatRoot, _presenter.IsInCombat);
             SetActive(rewardRoot, _presenter.IsAwaitingReward);
             SetActive(runOverRoot, _presenter.IsRunOver);
@@ -162,12 +149,9 @@ namespace STSlike.Presentation.UI
                 return;
 
             PlayerView player = _presenter.Player;
-            _playerFill = Approach(_playerFill, Fraction(Shown(player).Hp, player.MaxHp));
-            SetFill(playerHpFill, _playerFill);
-
-            EnemyView enemy = _presenter.Enemy;
-            _enemyFill = Approach(_enemyFill, Fraction(Shown(enemy).Hp, enemy.MaxHp));
-            SetFill(enemyHpFill, _enemyFill);
+            _playerFill = BarFill.Approach(_playerFill,
+                BarFill.Fraction(Shown(player).Hp, player.MaxHp), barSmoothing);
+            BarFill.Set(playerHpFill, _playerFill);
         }
 
         // Health as the stage has played it so far. Falls through to the real
@@ -177,26 +161,6 @@ namespace STSlike.Presentation.UI
             _display != null
                 ? _display.Of(ActorRef.Player, player.Hp, player.Block)
                 : new CombatDisplayState.Vitals(player.Hp, player.Block);
-
-        private CombatDisplayState.Vitals Shown(EnemyView enemy) =>
-            _display != null
-                ? _display.Of(ActorRef.Enemy(enemy.Slot), enemy.Hp, enemy.Block)
-                : new CombatDisplayState.Vitals(enemy.Hp, enemy.Block);
-
-        private static float Fraction(int hp, int maxHp) => maxHp <= 0 ? 0f : (float)hp / maxHp;
-
-        private float Approach(float current, float target)
-        {
-            // First frame, or an instant setting: land on the value directly.
-            if (current < 0f || barSmoothing <= 0f)
-                return target;
-
-            // Refilling (a new fight, a heal) should not crawl upward.
-            if (target > current)
-                return target;
-
-            return Mathf.Lerp(current, target, 1f - Mathf.Exp(-barSmoothing * Time.unscaledDeltaTime));
-        }
 
         // Block is usually hidden entirely at zero rather than shown as "0".
         private static void SetBlock(GameObject root, TMP_Text text, int block)
@@ -209,24 +173,6 @@ namespace STSlike.Presentation.UI
         {
             if (target != null)
                 target.text = value;
-        }
-
-        /// <summary>Works with a filled Image, or with a plain sprite via its anchor.</summary>
-        private static void SetFill(Image target, float fraction)
-        {
-            if (target == null)
-                return;
-
-            fraction = Mathf.Clamp01(fraction);
-            if (target.type == Image.Type.Filled)
-            {
-                target.fillAmount = fraction;
-            }
-            else
-            {
-                RectTransform rt = target.rectTransform;
-                rt.anchorMax = new Vector2(fraction, rt.anchorMax.y);
-            }
         }
 
         private static void SetActive(GameObject target, bool active)

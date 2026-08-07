@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Map;
 
@@ -78,9 +79,6 @@ namespace STSlike.Presentation.UI
 
     public readonly struct EnemyView
     {
-        /// <summary>Which place in the room this one holds; -1 when unknown.</summary>
-        public readonly int Slot;
-
         public readonly string Name;
         public readonly int Hp;
         public readonly int MaxHp;
@@ -111,9 +109,8 @@ namespace STSlike.Presentation.UI
         public EnemyView(string name, int hp, int maxHp, int block,
             string intentKind, int intentAmount, int intentHits,
             string intentMotion = null, float intentImpactDelay = 0f,
-            float intentHitInterval = 0f, int slot = -1)
+            float intentHitInterval = 0f)
         {
-            Slot = slot;
             IntentImpactDelay = intentImpactDelay;
             IntentHitInterval = intentHitInterval;
             Name = name;
@@ -287,6 +284,53 @@ namespace STSlike.Presentation.UI
             Motion = motion;
             ImpactDelay = impactDelay;
             HitInterval = hitInterval;
+        }
+    }
+
+    /// <summary>
+    /// One figure as its own small panel: what a widget floating over its head
+    /// needs to draw.
+    ///
+    /// The player and every enemy are described identically, so a single prefab
+    /// serves all of them and a fight with four opponents needs no new UI. The
+    /// enemy-only fields simply go unused for the player.
+    ///
+    /// Status effects will arrive as another field here once the rules have
+    /// them; nothing else in the chain has to change to carry them.
+    /// </summary>
+    public readonly struct ActorHudView
+    {
+        public readonly ActorRef Actor;
+        public readonly string Name;
+        public readonly int Hp;
+        public readonly int MaxHp;
+        public readonly int Block;
+
+        /// <summary>False for the player, whose intent panel stays hidden.</summary>
+        public readonly bool IsEnemy;
+
+        /// <summary>What this one will do on its next turn.</summary>
+        public readonly IntentType Intent;
+        public readonly int IntentAmount;
+        public readonly int IntentHits;
+
+        /// <summary>"8" for one hit, "5 x3" for a multi-hit.</summary>
+        public string IntentText =>
+            IntentHits > 1 ? $"{IntentAmount} x{IntentHits}" : IntentAmount.ToString();
+
+        public ActorHudView(ActorRef actor, string name, int hp, int maxHp, int block,
+            bool isEnemy, IntentType intent = IntentType.Unknown,
+            int intentAmount = 0, int intentHits = 1)
+        {
+            Actor = actor;
+            Name = name;
+            Hp = hp;
+            MaxHp = maxHp;
+            Block = block;
+            IsEnemy = isEnemy;
+            Intent = intent;
+            IntentAmount = intentAmount;
+            IntentHits = intentHits < 1 ? 1 : intentHits;
         }
     }
 

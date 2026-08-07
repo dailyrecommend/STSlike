@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 4589959955094639474}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.1, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -41,7 +41,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: f4ac2759c5cb1ba47b625414e975996c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.537
+      value: -1.8490001
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f4ac2759c5cb1ba47b625414e975996c, type: 3}
       propertyPath: m_LocalPosition.y
@@ -49,7 +49,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f4ac2759c5cb1ba47b625414e975996c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.3854332
+      value: -1.9794332
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f4ac2759c5cb1ba47b625414e975996c, type: 3}
       propertyPath: m_LocalRotation.w
@@ -515,12 +515,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.View.ActorView
   animator: {fileID: 3641213198105832983}
-  attackTrigger: Attack
+  idleMotion: Idle
+  autoReturnToIdle: 1
+  idleFallbackDelay: 1
+  motionBlend: 0
   hitTrigger: Hit
   deathTrigger: Die
-  victoryTrigger: Victory
+  aliases: []
+  logMissingMotions: 1
   uiAnchor: {fileID: 1688391249607779287}
   hideAfterDeath: 1.2
+  hideOnDeath: 1
 --- !u!95 &3641213198105832983
 Animator:
   serializedVersion: 7

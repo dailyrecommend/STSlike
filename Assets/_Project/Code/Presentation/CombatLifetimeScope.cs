@@ -173,7 +173,19 @@ namespace STSlike.Presentation
             RegisterIfPresent<HandCardLayout>(builder);
             RegisterIfPresent<CardListPopupBinder>(builder);
             RegisterIfPresent<MapViewBinder>(builder);
-            RegisterIfPresent<CombatStageBinder>(builder);
+
+            if (FindFirstObjectByType<CombatStageBinder>(FindObjectsInactive.Include) != null)
+            {
+                // Also as IActorAnchors: the floating panels ask it where each
+                // figure is and nothing else about the stage.
+                builder.RegisterComponentInHierarchy<CombatStageBinder>()
+                    .AsSelf()
+                    .As<IActorAnchors>();
+
+                // Only wired up alongside the stage — panels with nothing to
+                // float over have no anchors to ask for.
+                RegisterIfPresent<ActorOverlayBinder>(builder);
+            }
         }
 
         /// <summary>

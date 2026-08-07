@@ -24,7 +24,7 @@ MonoBehaviour:
     hitInterval: 0
   - type: 0
     amount: 2
-    hits: 8
+    hits: 5
     animation: Attack1
     impactDelay: 0.35
     hitInterval: 0.01

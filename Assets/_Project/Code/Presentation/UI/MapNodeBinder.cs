@@ -171,14 +171,11 @@ namespace STSlike.Presentation.UI
                 return;
 
             // IsChildOf is true for the transform itself, so this covers both
-            // "the node" and "a parent of the node".
+            // "the node" and "a parent of the node". Ignored without a word:
+            // the slot is wired in a prefab, so every node cloned from it would
+            // say the same thing, on every redraw, forever.
             if (transform.IsChildOf(marker.transform))
-            {
-                Debug.LogWarning(
-                    $"[MapNodeBinder] '{marker.name}' is the node itself or one of its parents; " +
-                    "marker slots take a child decoration. Ignoring it.", this);
                 return;
-            }
 
             if (marker.activeSelf != active)
                 marker.SetActive(active);

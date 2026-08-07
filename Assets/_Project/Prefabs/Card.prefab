@@ -518,6 +518,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b157348aed752f74397c040ec0fd2662, type: 3}
   m_Name: 
   m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.UI.CardViewBinder
+  visual: {fileID: 0}
   nameText: {fileID: 1129083999992691243}
   costText: {fileID: 992586670714656274}
   artwork: {fileID: 3928469153708263882}

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using STSlike.Data;
+using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Combat;
@@ -32,6 +33,7 @@ namespace STSlike.Presentation.UI
         private readonly List<Card> _handCards = new List<Card>();
         private readonly List<CardView> _hand = new List<CardView>();
         private readonly List<RewardView> _rewards = new List<RewardView>();
+        private readonly List<ActorHudView> _actors = new List<ActorHudView>();
 
         /// <summary>Any visible state may have changed; rebind the HUD.</summary>
         public event Action Changed;
@@ -241,14 +243,52 @@ namespace STSlike.Presentation.UI
             }
         }
 
+        /// <summary>
+        /// Everyone on stage, the player first and then the room in slot order.
+        ///
+        /// One shape for both sides is what lets a single widget float over any
+        /// figure — a fight with four opponents needs no new UI, only more of
+        /// the same. The list is reused between calls, so the overlay can ask
+        /// for it every frame without generating garbage.
+        /// </summary>
+        public IReadOnlyList<ActorHudView> Actors
+        {
+            get
+            {
+                _actors.Clear();
+
+                PlayerView player = Player;
+                _actors.Add(new ActorHudView(ActorRef.Player, player.Name,
+                    player.Hp, player.MaxHp, player.Block, isEnemy: false));
+
+                CombatManager manager = _runner.Current;
+                if (manager == null)
+                    return _actors;
+
+                IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+                for (int i = 0; i < enemies.Count; i++)
+                {
+                    Domain.Actors.EnemyState enemy = enemies[i];
+                    Domain.Actors.EnemyIntent intent = enemy.Intent;
+
+                    _actors.Add(new ActorHudView(ActorRef.Enemy(i), enemy.Name,
+                        enemy.CurrentHp, enemy.MaxHp, enemy.Block, isEnemy: true,
+                        intent != null ? intent.Type : IntentType.Unknown,
+                        intent != null ? intent.Amount : 0,
+                        intent != null ? intent.Hits : 1));
+                }
+
+                return _actors;
+            }
+        }
+
         private EnemyView Describe(Domain.Actors.EnemyState enemy, int slot)
         {
             return new EnemyView(enemy.Name, enemy.CurrentHp, enemy.MaxHp, enemy.Block,
                 enemy.Intent.Type.ToString(), enemy.Intent.Amount, enemy.Intent.Hits,
                 MotionFor(slot, enemy.Intent.MoveIndex),
                 ImpactDelayFor(slot, enemy.Intent.MoveIndex),
-                HitIntervalFor(slot, enemy.Intent.MoveIndex),
-                slot);
+                HitIntervalFor(slot, enemy.Intent.MoveIndex));
         }
 
         /// <summary>Looks up the motion authored beside this step of the enemy's routine.</summary>
