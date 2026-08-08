@@ -5,6 +5,7 @@
         "STSlike.Domain",
         "STSlike.Data",
         "STSlike.Infrastructure",
+        "STSlike.Presentation",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

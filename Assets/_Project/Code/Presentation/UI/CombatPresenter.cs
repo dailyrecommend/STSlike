@@ -255,10 +255,7 @@ namespace STSlike.Presentation.UI
             get
             {
                 _actors.Clear();
-
-                PlayerView player = Player;
-                _actors.Add(new ActorHudView(ActorRef.Player, player.Name,
-                    player.Hp, player.MaxHp, player.Block, isEnemy: false));
+                _actors.Add(DescribePlayer());
 
                 CombatManager manager = _runner.Current;
                 if (manager == null)
@@ -266,16 +263,7 @@ namespace STSlike.Presentation.UI
 
                 IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
                 for (int i = 0; i < enemies.Count; i++)
-                {
-                    Domain.Actors.EnemyState enemy = enemies[i];
-                    Domain.Actors.EnemyIntent intent = enemy.Intent;
-
-                    _actors.Add(new ActorHudView(ActorRef.Enemy(i), enemy.Name,
-                        enemy.CurrentHp, enemy.MaxHp, enemy.Block, isEnemy: true,
-                        intent != null ? intent.Type : IntentType.Unknown,
-                        intent != null ? intent.Amount : 0,
-                        intent != null ? intent.Hits : 1));
-                }
+                    _actors.Add(DescribeEnemy(enemies[i], i));
 
                 return _actors;
             }
@@ -284,6 +272,11 @@ namespace STSlike.Presentation.UI
         /// <summary>
         /// One figure by reference. False when nobody holds that place — a slot
         /// the room never filled, or a view a frame out of date.
+        ///
+        /// Built straight from the rules rather than by searching
+        /// <see cref="Actors"/>. That list is reused between calls, so going
+        /// through it here would let a caller iterating it trigger the rebuild
+        /// that empties the very list they are walking.
         /// </summary>
         public bool TryGetActor(ActorRef actor, out ActorHudView found)
         {
@@ -291,17 +284,41 @@ namespace STSlike.Presentation.UI
             if (!actor.IsValid)
                 return false;
 
-            IReadOnlyList<ActorHudView> actors = Actors;
-            foreach (ActorHudView candidate in actors)
+            if (actor.IsPlayer)
             {
-                if (candidate.Actor.IsPlayer != actor.IsPlayer
-                    || candidate.Actor.EnemyIndex != actor.EnemyIndex)
-                    continue;
-
-                found = candidate;
+                found = DescribePlayer();
                 return true;
             }
-            return false;
+
+            CombatManager manager = _runner.Current;
+            if (manager == null)
+                return false;
+
+            IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+            int slot = actor.EnemyIndex;
+            if (slot < 0 || slot >= enemies.Count)
+                return false;
+
+            found = DescribeEnemy(enemies[slot], slot);
+            return true;
+        }
+
+        private ActorHudView DescribePlayer()
+        {
+            PlayerView player = Player;
+            return new ActorHudView(ActorRef.Player, player.Name,
+                player.Hp, player.MaxHp, player.Block, isEnemy: false);
+        }
+
+        private static ActorHudView DescribeEnemy(Domain.Actors.EnemyState enemy, int slot)
+        {
+            Domain.Actors.EnemyIntent intent = enemy.Intent;
+
+            return new ActorHudView(ActorRef.Enemy(slot), enemy.Name,
+                enemy.CurrentHp, enemy.MaxHp, enemy.Block, isEnemy: true,
+                intent != null ? intent.Type : IntentType.Unknown,
+                intent != null ? intent.Amount : 0,
+                intent != null ? intent.Hits : 1);
         }
 
         /// <summary>Looks up the motion authored beside this step of the enemy's routine.</summary>
@@ -365,7 +382,7 @@ namespace STSlike.Presentation.UI
             if (manager == null || !CanAct)
                 return;
 
-            RebuildHand();
+            RebuildHandCards();
             if (handIndex < 0 || handIndex >= _handCards.Count)
                 return;
 
@@ -619,9 +636,28 @@ namespace STSlike.Presentation.UI
             }
         }
 
-        private void RebuildHand()
+        /// <summary>
+        /// The hand as the rules hold it, for resolving a hand slot to a card.
+        ///
+        /// Kept separate from building the views so that playing a card does not
+        /// have to touch the list <see cref="Hand"/> hands out: a view iterating
+        /// the hand and playing from it would otherwise empty the collection it
+        /// was walking.
+        /// </summary>
+        private void RebuildHandCards()
         {
             _handCards.Clear();
+
+            CombatManager manager = _runner.Current;
+            if (manager == null)
+                return;
+
+            _handCards.AddRange(manager.Context.Player.Deck.Hand.Cards);
+        }
+
+        private void RebuildHand()
+        {
+            RebuildHandCards();
             _hand.Clear();
 
             CombatManager manager = _runner.Current;
@@ -632,13 +668,11 @@ namespace STSlike.Presentation.UI
             // only about energy: the whole hand dims while the enemy is taking
             // its turn. Cards the player is chaining themselves stay lit.
             bool canAct = CanAct;
+            PlayerState player = manager.Context.Player;
 
-            var player = manager.Context.Player;
-            IReadOnlyList<Card> cards = player.Deck.Hand.Cards;
-            for (int i = 0; i < cards.Count; i++)
+            for (int i = 0; i < _handCards.Count; i++)
             {
-                Card card = cards[i];
-                _handCards.Add(card);
+                Card card = _handCards[i];
                 _hand.Add(BuildCardView(card, i, canAct && player.CanAfford(card.Cost)));
             }
         }
