@@ -13,19 +13,12 @@ namespace STSlike.Presentation.UI
     /// </summary>
     public sealed class MapNodeBinder : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        /// <summary>Artwork per node type, so a shop reads differently from an elite.</summary>
-        [Serializable]
-        private struct TypeIcon
-        {
-            public MapNodeType type;
-            public Sprite sprite;
-            public Color tint;
-        }
-
         [Header("Content")]
         [SerializeField] private Image icon;
         [SerializeField] private Button button;
-        [SerializeField] private TypeIcon[] typeIcons;
+
+        [Tooltip("Artwork per node type, so a shop reads differently from an elite.")]
+        [SerializeField] private ArtEntry<MapNodeType>[] typeIcons;
 
         [Header("State")]
         [Tooltip("Shown on the node the player is standing on.")]
@@ -111,14 +104,9 @@ namespace STSlike.Presentation.UI
             bool cleared = view.IsVisited && !view.IsCurrent;
 
             Color baseColor = ApplyIcon(view.Type);
-            if (icon != null)
-                icon.color = cleared ? clearedTint : baseColor;
-
-            if (button != null)
-                button.interactable = view.IsReachable;
-
-            if (fadeGroup != null)
-                fadeGroup.alpha = ResolveAlpha(view, cleared);
+            UiSlot.SetColor(icon, cleared ? clearedTint : baseColor);
+            UiSlot.SetInteractable(button, view.IsReachable);
+            UiSlot.SetAlpha(fadeGroup, ResolveAlpha(view, cleared));
 
             ToggleMarker(currentMarker, view.IsCurrent);
             ToggleMarker(reachableMarker, view.IsReachable);
@@ -133,27 +121,19 @@ namespace STSlike.Presentation.UI
             return unreachableAlpha;   // not on the route from here
         }
 
-        /// <summary>Applies the type's art and returns the colour it should use.</summary>
+        /// <summary>
+        /// Applies the type's art and returns the colour it should use. The
+        /// colour is handed back rather than applied here because the caller
+        /// may override it — a cleared node is tinted by its state, not by
+        /// what kind of stop it is.
+        /// </summary>
         private Color ApplyIcon(MapNodeType type)
         {
-            if (icon == null || typeIcons == null)
-                return _defaultIconColor;
+            UiSlot.SetSprite(icon, ArtTable.TryFind(typeIcons, type, out ArtEntry<MapNodeType> entry)
+                ? entry.sprite
+                : null);
 
-            foreach (TypeIcon entry in typeIcons)
-            {
-                if (entry.type != type)
-                    continue;
-
-                // Only override what was actually configured. Blanking the image
-                // for a type with no art yet would hide the node entirely, which
-                // looks like the map failed to build.
-                if (entry.sprite != null)
-                    icon.sprite = entry.sprite;
-
-                return entry.tint.a > 0f ? entry.tint : _defaultIconColor;
-            }
-
-            return _defaultIconColor;
+            return ArtTable.Tint(typeIcons, type, _defaultIconColor);
         }
 
         /// <summary>
@@ -177,8 +157,7 @@ namespace STSlike.Presentation.UI
             if (transform.IsChildOf(marker.transform))
                 return;
 
-            if (marker.activeSelf != active)
-                marker.SetActive(active);
+            UiSlot.SetActive(marker, active);
         }
     }
 }

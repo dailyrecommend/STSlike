@@ -2163,18 +2163,25 @@ MonoBehaviour:
   stageIcons:
   - type: 0
     sprite: {fileID: 21300000, guid: 949b10e36ddc1574f9afdb8f45682a3f, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 1
     sprite: {fileID: 21300000, guid: fdfc49746d55eba45a59ad2b5e5431d6, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 2
     sprite: {fileID: 21300000, guid: 413c6da46af1aed4aa7f09b0d642c76b, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 3
     sprite: {fileID: 21300000, guid: 57b9d5aec32b54d40b2d328115905e55, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 4
     sprite: {fileID: 21300000, guid: 8fbe272f8ba3274428290bc8a66a5d1e, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 5
     sprite: {fileID: 21300000, guid: 0f9f512e65bd9cb4383a34fc0c2262a8, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 6
     sprite: {fileID: 21300000, guid: fdfc49746d55eba45a59ad2b5e5431d6, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   drawCountText: {fileID: 577361207}
   discardCountText: {fileID: 905000903}
   playerHpText: {fileID: 1985361689}
@@ -4987,7 +4994,8 @@ MonoBehaviour:
     TypeName: 
   autoRun: 1
   autoInjectGameObjects: []
-  character: {fileID: 11400000, guid: ec9446ac3de4b8f43bc9a6d53c07e765, type: 2}
+  catalog: {fileID: 11400000, guid: 8df7a7f5f79eb1f45a1fe3277c0e0fa8, type: 2}
+  characterId: AL
   seed: 0
   cardsPerTurn: 5
   mapFloors: 18
@@ -4995,16 +5003,8 @@ MonoBehaviour:
   mapPaths: 5
   firstEliteFloor: 4
   treasureFloor: 8
-  characterId: albino
-  playerHp: 70
-  maxEnergy: 3
-  startingCredits: 100
-  enemyPool:
-  - {fileID: 11400000, guid: 51e5f1d39cec3d942932017e5f3daf38, type: 2}
   enemyHp: 45
   enemyAttack: 12
-  starterDeck: []
-  rewardCardPool: []
   rewardCardChoices: 3
   rewardHealAmount: 8
 --- !u!114 &1762717760

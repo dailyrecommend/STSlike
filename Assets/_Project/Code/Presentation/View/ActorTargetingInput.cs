@@ -1,10 +1,6 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using VContainer;
 using STSlike.Presentation.UI;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 
 namespace STSlike.Presentation.View
 {
@@ -49,7 +45,7 @@ namespace STSlike.Presentation.View
             // a target: a figure's name appears whenever the pointer finds it.
             // The hand, the tooltip, any panel — a pointer there belongs to the
             // UI, and nothing on stage is under it.
-            ActorRef hit = OverUi() ? ActorRef.None : Pick();
+            ActorRef hit = GameInput.OverUi ? ActorRef.None : Pick();
             _hover.Set(hit);
 
             // Nothing to point at for a card that acts on the player: the hand
@@ -61,7 +57,7 @@ namespace STSlike.Presentation.View
 
             // Only enemies: the cards that need aiming are the ones that hit
             // somebody else.
-            if (!hit.IsValid || hit.IsPlayer || !ClickPressed())
+            if (!hit.IsValid || hit.IsPlayer || !GameInput.ClickedPrimary)
                 return;
 
             // Read the aim before clearing it — Clear would otherwise take the
@@ -83,7 +79,7 @@ namespace STSlike.Presentation.View
             if (scene == null || _stage == null)
                 return ActorRef.None;
 
-            Ray ray = scene.ScreenPointToRay(PointerPosition());
+            Ray ray = scene.ScreenPointToRay(GameInput.Position());
             if (!Physics.Raycast(ray, out RaycastHit hit, maxDistance, hitLayers))
                 return ActorRef.None;
 
@@ -92,36 +88,5 @@ namespace STSlike.Presentation.View
                 : ActorRef.None;
         }
 
-        private static bool OverUi()
-        {
-            EventSystem events = EventSystem.current;
-            return events != null && events.IsPointerOverGameObject();
-        }
-
-        private static Vector2 PointerPosition()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Pointer.current != null)
-                return Pointer.current.position.ReadValue();
-#endif
-#if ENABLE_LEGACY_INPUT_MANAGER
-            return Input.mousePosition;
-#else
-            return Vector2.zero;
-#endif
-        }
-
-        private static bool ClickPressed()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null)
-                return Mouse.current.leftButton.wasPressedThisFrame;
-#endif
-#if ENABLE_LEGACY_INPUT_MANAGER
-            return Input.GetMouseButtonDown(0);
-#else
-            return false;
-#endif
-        }
     }
 }

@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer;
 using STSlike.Data;
+using STSlike.Domain.Actors;
 using STSlike.Presentation.UI;
 
 namespace STSlike.Presentation.View
@@ -126,7 +127,7 @@ namespace STSlike.Presentation.View
 
         private void SpawnEnemies()
         {
-            IReadOnlyList<EnemyData> data = _runner.CurrentEnemyData;
+            IReadOnlyList<IEnemyDefinition> data = _runner.CurrentEnemies;
 
             // Clear the previous room: models belong to one fight, not the run.
             foreach (ActorView enemy in _enemies)
@@ -139,7 +140,12 @@ namespace STSlike.Presentation.View
             int count = Mathf.Max(1, data.Count);
             for (int i = 0; i < count; i++)
             {
-                GameObject prefab = i < data.Count && data[i] != null ? data[i].ModelPrefab : null;
+                // Only content authored as an asset carries a model. Anything
+                // else falls to the placeholder rather than failing to appear.
+                GameObject prefab = i < data.Count && data[i] is EnemyData asset
+                    ? asset.ModelPrefab
+                    : null;
+
                 Transform slot = arena != null ? arena.EnemySlot(i) : transform;
 
                 _enemies.Add(Spawn(prefab, slot));
@@ -287,14 +293,18 @@ namespace STSlike.Presentation.View
         /// </summary>
         private void SyncDeaths()
         {
-            IReadOnlyList<EnemyView> enemies = _presenter.Enemies;
-
-            for (int i = 0; i < _enemies.Count && i < enemies.Count; i++)
+            for (int i = 0; i < _enemies.Count; i++)
             {
+                ActorRef actor = ActorRef.Enemy(i);
+
+                // A model standing in a slot the room never filled — the arena
+                // always puts someone on stage — has no health to run out.
+                if (!_presenter.TryGetActor(actor, out ActorHudView view))
+                    continue;
+
                 // Displayed health, not real: an enemy killed by the third blow
                 // of a flurry must stay standing until that blow has played.
-                ActorRef actor = ActorRef.Enemy(i);
-                if (_display.Of(actor, enemies[i].Hp, enemies[i].Block).Hp <= 0)
+                if (_display.Of(actor, view.Hp, view.Block).Hp <= 0)
                     _enemies[i]?.PlayDeath();
             }
         }
@@ -302,16 +312,8 @@ namespace STSlike.Presentation.View
         /// <summary>The figure's health as the rules have it right now.</summary>
         private CombatDisplayState.Vitals Read(ActorRef actor)
         {
-            if (actor.IsPlayer)
-            {
-                PlayerView player = _presenter.Player;
-                return new CombatDisplayState.Vitals(player.Hp, player.Block);
-            }
-
-            IReadOnlyList<EnemyView> enemies = _presenter.Enemies;
-            int index = actor.EnemyIndex;
-            return index >= 0 && index < enemies.Count
-                ? new CombatDisplayState.Vitals(enemies[index].Hp, enemies[index].Block)
+            return _presenter.TryGetActor(actor, out ActorHudView view)
+                ? new CombatDisplayState.Vitals(view.Hp, view.Block)
                 : default;
         }
 

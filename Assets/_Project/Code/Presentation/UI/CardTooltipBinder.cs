@@ -2,9 +2,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 
 namespace STSlike.Presentation.UI
 {
@@ -115,15 +112,16 @@ namespace STSlike.Presentation.UI
 
             CardView card = _hover.Card;
 
-            SetText(nameText, card.Name);
-            SetText(costText, card.Cost.ToString());
-            SetText(typeText, card.Type.ToString());
-            SetText(rarityText, card.Rarity.ToString());
-            SetText(descriptionText, card.Description);
+            UiSlot.SetText(nameText, card.Name);
+            UiSlot.SetText(costText, card.Cost.ToString());
+            UiSlot.SetText(typeText, card.Type.ToString());
+            UiSlot.SetText(rarityText, card.Rarity.ToString());
+            UiSlot.SetText(descriptionText, card.Description);
 
             // Keep the prefab's placeholder art when a card has none of its own.
-            if (artwork != null && card.Artwork != null)
-                artwork.sprite = card.Artwork;
+            // Unlike a card in hand, this panel is not pooled across cards — it
+            // is rebuilt every time it appears, so nothing stale can linger.
+            UiSlot.SetSprite(artwork, card.Artwork);
 
             if (!panel.activeSelf)
                 panel.SetActive(true);
@@ -165,18 +163,7 @@ namespace STSlike.Presentation.UI
         /// by the hover channel is the fallback, so the tooltip still appears in
         /// the right place even with no pointer device at all.
         /// </summary>
-        private Vector2 ReadPointerPosition()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Pointer.current != null)
-                return Pointer.current.position.ReadValue();
-#endif
-#if ENABLE_LEGACY_INPUT_MANAGER
-            return Input.mousePosition;
-#else
-            return _hover.PointerPosition;
-#endif
-        }
+        private Vector2 ReadPointerPosition() => GameInput.Position(_hover.PointerPosition);
 
         /// <summary>
         /// Keeps the panel inside its parent. Near the right or top edge the
@@ -202,10 +189,5 @@ namespace STSlike.Presentation.UI
                 maxY >= minY ? Mathf.Clamp(position.y, minY, maxY) : position.y);
         }
 
-        private static void SetText(TMP_Text target, string value)
-        {
-            if (target != null)
-                target.text = value;
-        }
     }
 }

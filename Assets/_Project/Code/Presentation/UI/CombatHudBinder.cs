@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,14 +16,6 @@ namespace STSlike.Presentation.UI
     /// </summary>
     public sealed class CombatHudBinder : MonoBehaviour
     {
-        /// <summary>Art for one kind of stop, chosen in the inspector.</summary>
-        [Serializable]
-        private struct StageIcon
-        {
-            public MapNodeType type;
-            public Sprite sprite;
-        }
-
         [Header("Top Bar")]
         [SerializeField] private Image characterIcon;
         [SerializeField] private TMP_Text floorText;
@@ -40,7 +31,7 @@ namespace STSlike.Presentation.UI
 
         [Tooltip("Art per kind. A kind with no entry keeps whatever sprite the " +
                  "prefab already has, so unfinished art never blanks the slot.")]
-        [SerializeField] private StageIcon[] stageIcons;
+        [SerializeField] private ArtEntry<MapNodeType>[] stageIcons;
 
         [Header("Piles (bottom bar)")]
         [SerializeField] private TMP_Text drawCountText;
@@ -120,18 +111,10 @@ namespace STSlike.Presentation.UI
             if (_character == null)
                 return;
 
-            SetSprite(characterIcon, _character.Icon);
-            SetSprite(energyIcon, _character.EnergyIcon);
+            UiSlot.SetSprite(characterIcon, _character.Icon);
+            UiSlot.SetSprite(energyIcon, _character.EnergyIcon);
         }
 
-        // Only replaces the sprite when one was actually supplied. Switching the
-        // Image off for missing art would also throw away whatever placeholder
-        // was put in the prefab, which reads as a broken HUD.
-        private static void SetSprite(Image target, Sprite sprite)
-        {
-            if (target != null && sprite != null)
-                target.sprite = sprite;
-        }
 
         private void Refresh()
         {
@@ -139,29 +122,28 @@ namespace STSlike.Presentation.UI
                 return;
 
             RunView run = _presenter.Run;
-            SetText(floorText, run.Floor.ToString());
-            SetText(creditsText, run.Credits.ToString());
-            SetText(deckCountText, run.DeckCount.ToString());
+            UiSlot.SetText(floorText, run.Floor.ToString());
+            UiSlot.SetText(creditsText, run.Credits.ToString());
+            UiSlot.SetText(deckCountText, run.DeckCount.ToString());
             ApplyStage(run);
 
             PlayerView player = _presenter.Player;
             CombatDisplayState.Vitals shown = Shown(player);
-            SetText(playerHpText, $"{shown.Hp}/{player.MaxHp}");
-            SetText(energyText, $"{player.Energy}/{player.MaxEnergy}");
+            UiSlot.SetText(playerHpText, $"{shown.Hp}/{player.MaxHp}");
+            UiSlot.SetText(energyText, $"{player.Energy}/{player.MaxEnergy}");
             SetBlock(playerBlockRoot, playerBlockText, shown.Block);
-            SetText(drawCountText, player.DrawCount.ToString());
-            SetText(discardCountText, player.DiscardCount.ToString());
-            SetText(turnText, _presenter.Turn.ToString());
+            UiSlot.SetText(drawCountText, player.DrawCount.ToString());
+            UiSlot.SetText(discardCountText, player.DiscardCount.ToString());
+            UiSlot.SetText(turnText, _presenter.Turn.ToString());
 
             // Greyed out while the enemy's turn is playing out on screen.
-            if (endTurnButton != null)
-                endTurnButton.interactable = _presenter.CanAct;
+            UiSlot.SetInteractable(endTurnButton, _presenter.CanAct);
 
-            SetActive(combatRoot, _presenter.IsInCombat);
-            SetActive(rewardRoot, _presenter.IsAwaitingReward);
-            SetActive(runOverRoot, _presenter.IsRunOver);
+            UiSlot.SetActive(combatRoot, _presenter.IsInCombat);
+            UiSlot.SetActive(rewardRoot, _presenter.IsAwaitingReward);
+            UiSlot.SetActive(runOverRoot, _presenter.IsRunOver);
             if (_presenter.IsRunOver)
-                SetText(runOverText, run.PlayerWon ? "VICTORY" : "DEFEAT");
+                UiSlot.SetText(runOverText, run.PlayerWon ? "VICTORY" : "DEFEAT");
         }
 
         /// <summary>
@@ -175,9 +157,9 @@ namespace STSlike.Presentation.UI
                 return;
 
             PlayerView player = _presenter.Player;
-            _playerFill = BarFill.Approach(_playerFill,
-                BarFill.Fraction(Shown(player).Hp, player.MaxHp), barSmoothing);
-            BarFill.Set(playerHpFill, _playerFill);
+            _playerFill = UiSlot.Approach(_playerFill,
+                UiSlot.Fraction(Shown(player).Hp, player.MaxHp), barSmoothing);
+            UiSlot.SetFill(playerHpFill, _playerFill);
         }
 
         // Health as the stage has played it so far. Falls through to the real
@@ -198,37 +180,18 @@ namespace STSlike.Presentation.UI
             if (stageIcon == null)
                 return;
 
-            SetActive(stageIcon.gameObject, run.HasNode);
-            if (!run.HasNode || stageIcons == null)
-                return;
+            UiSlot.SetActive(stageIcon.gameObject, run.HasNode);
 
-            foreach (StageIcon entry in stageIcons)
-            {
-                if (entry.type == run.NodeType && entry.sprite != null)
-                {
-                    stageIcon.sprite = entry.sprite;
-                    return;
-                }
-            }
+            if (run.HasNode)
+                ArtTable.Apply(stageIcons, run.NodeType, stageIcon);
         }
 
         // Block is usually hidden entirely at zero rather than shown as "0".
         private static void SetBlock(GameObject root, TMP_Text text, int block)
         {
-            SetActive(root, block > 0);
-            SetText(text, block.ToString());
+            UiSlot.SetActive(root, block > 0);
+            UiSlot.SetText(text, block.ToString());
         }
 
-        private static void SetText(TMP_Text target, string value)
-        {
-            if (target != null)
-                target.text = value;
-        }
-
-        private static void SetActive(GameObject target, bool active)
-        {
-            if (target != null && target.activeSelf != active)
-                target.SetActive(active);
-        }
     }
 }

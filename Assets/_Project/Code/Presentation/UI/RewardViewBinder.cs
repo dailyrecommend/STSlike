@@ -49,8 +49,7 @@ namespace STSlike.Presentation.UI
             IReadOnlyList<RewardView> rewards = _presenter.Rewards;
             Transform parent = optionContainer != null ? optionContainer : transform;
 
-            if (headlineText != null)
-                headlineText.text = rewards.Count > 0 ? "Choose a reward" : string.Empty;
+            UiSlot.SetText(headlineText, rewards.Count > 0 ? "Choose a reward" : string.Empty);
 
             while (_spawned.Count < rewards.Count)
             {

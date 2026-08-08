@@ -20,6 +20,17 @@ namespace STSlike.Domain.Cards
         CardTarget Target { get; }
 
         CardRarity Rarity { get; }
+
+        /// <summary>
+        /// Whether this may be offered as a reward.
+        ///
+        /// A rules concept, not a filter someone maintains by hand: starter
+        /// cards exist to be in the opening deck, not to be won again. With the
+        /// catalogue holding every card in the game, the alternative is a
+        /// separate curated list that has to be remembered every time a card is
+        /// added — and that a mod could not contribute to.
+        /// </summary>
+        bool Collectable { get; }
         IReadOnlyList<ICardEffect> Effects { get; }
     }
 }

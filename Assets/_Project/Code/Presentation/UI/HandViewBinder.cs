@@ -1,10 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using VContainer;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 
 namespace STSlike.Presentation.UI
 {
@@ -74,7 +70,8 @@ namespace STSlike.Presentation.UI
             if (_selection == null || !_selection.IsAiming || _selection.JustSelected)
                 return;
 
-            if (CancelPressed())
+            // Right-click and Escape both put an aimed card back.
+            if (GameInput.ClickedSecondary || GameInput.EscapePressed)
             {
                 _selection.Clear();
                 return;
@@ -84,51 +81,12 @@ namespace STSlike.Presentation.UI
             // click that commits it is simply one away from the UI. Handled here
             // rather than with the target picking, which needs a stage; a card
             // aimed at yourself should not depend on there being models.
-            if (!_selection.NeedsTarget && ClickPressed() && !OverUi())
+            if (!_selection.NeedsTarget && GameInput.ClickedPrimary && !GameInput.OverUi)
             {
                 int handIndex = _selection.HandIndex;
                 _selection.Clear();
                 _presenter.PlayCard(handIndex);
             }
-        }
-
-        // A click on the hand, a panel or a popup belongs to that thing. Without
-        // this, picking a card up would immediately throw it again on the very
-        // click that picked it.
-        private static bool OverUi()
-        {
-            EventSystem events = EventSystem.current;
-            return events != null && events.IsPointerOverGameObject();
-        }
-
-        private static bool ClickPressed()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null)
-                return Mouse.current.leftButton.wasPressedThisFrame;
-#endif
-#if ENABLE_LEGACY_INPUT_MANAGER
-            return Input.GetMouseButtonDown(0);
-#else
-            return false;
-#endif
-        }
-
-        // Right-click and Escape both put an aimed card back. Kept working under
-        // either input backend, the same way the tooltip reads the pointer.
-        private static bool CancelPressed()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
-                return true;
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-                return true;
-#endif
-#if ENABLE_LEGACY_INPUT_MANAGER
-            return Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape);
-#else
-            return false;
-#endif
         }
 
         private void Refresh()

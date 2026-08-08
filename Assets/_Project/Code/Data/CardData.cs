@@ -28,6 +28,10 @@ namespace STSlike.Data
 
         [SerializeField] private CardRarity rarity = CardRarity.Common;
 
+        [Tooltip("Can be offered as a reward. Turn this off for starter cards — " +
+                 "they belong in the opening deck, not in the prize pool.")]
+        [SerializeField] private bool collectable = true;
+
         [SerializeReference, SerializeReferenceDropdown]
         private List<ICardEffect> effects = new List<ICardEffect>();
 
@@ -60,6 +64,7 @@ namespace STSlike.Data
         public CardType Type => type;
         public CardTarget Target => target;
         public CardRarity Rarity => rarity;
+        public bool Collectable => collectable;
         public IReadOnlyList<ICardEffect> Effects => effects;
 
         /// <summary>Falls back to the id so an unfinished card is still readable.</summary>

@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,14 +20,6 @@ namespace STSlike.Presentation.UI
     /// </summary>
     public sealed class ActorOverlayView : MonoBehaviour
     {
-        /// <summary>Art for one kind of intent, chosen in the inspector.</summary>
-        [Serializable]
-        private struct IntentIcon
-        {
-            public IntentType type;
-            public Sprite sprite;
-        }
-
         [Header("Name (shown only under the pointer)")]
         [SerializeField] private TMP_Text nameText;
 
@@ -67,7 +58,7 @@ namespace STSlike.Presentation.UI
 
         [Tooltip("Optional art per intent. A kind with no entry keeps whatever " +
                  "sprite the prefab already has.")]
-        [SerializeField] private IntentIcon[] intentIcons;
+        [SerializeField] private ArtEntry<IntentType>[] intentIcons;
 
         private RectTransform _rect;
         private float _fill = -1f;
@@ -82,17 +73,11 @@ namespace STSlike.Presentation.UI
         /// </summary>
         public void SetTargeting(bool targetable, bool targeted)
         {
-            Show(targetableHighlight, targetable);
-            Show(targetedHighlight, targeted);
+            UiSlot.SetActive(targetableHighlight, targetable);
+            UiSlot.SetActive(targetedHighlight, targeted);
         }
 
         private GameObject NameObject => nameText != null ? nameText.gameObject : null;
-
-        private static void Show(GameObject target, bool visible)
-        {
-            if (target != null && target.activeSelf != visible)
-                target.SetActive(visible);
-        }
 
         /// <summary>
         /// Draws one figure. Health comes in already resolved to what the player
@@ -101,20 +86,14 @@ namespace STSlike.Presentation.UI
         /// </summary>
         public void Bind(ActorHudView actor, int shownHp, int shownBlock, bool named)
         {
-            if (nameText != null)
-                nameText.text = actor.Name;
+            UiSlot.SetText(nameText, actor.Name);
+            UiSlot.SetActive(nameRoot != null ? nameRoot : NameObject, named);
 
-            Show(nameRoot != null ? nameRoot : NameObject, named);
+            UiSlot.SetText(hpText, $"{shownHp}/{actor.MaxHp}");
+            _targetFill = UiSlot.Fraction(shownHp, actor.MaxHp);
 
-            if (hpText != null)
-                hpText.text = $"{shownHp}/{actor.MaxHp}";
-
-            _targetFill = BarFill.Fraction(shownHp, actor.MaxHp);
-
-            if (blockRoot != null)
-                blockRoot.SetActive(shownBlock > 0);
-            if (blockText != null)
-                blockText.text = shownBlock.ToString();
+            UiSlot.SetActive(blockRoot, shownBlock > 0);
+            UiSlot.SetText(blockText, shownBlock.ToString());
 
             BindIntent(actor);
         }
@@ -122,47 +101,24 @@ namespace STSlike.Presentation.UI
         private void BindIntent(ActorHudView actor)
         {
             bool show = actor.IsEnemy && actor.Intent != IntentType.Unknown;
-
-            if (intentRoot != null)
-                intentRoot.SetActive(show);
+            UiSlot.SetActive(intentRoot, show);
 
             if (!show)
                 return;
 
-            if (intentText != null)
-            {
-                intentText.text = actor.IntentAmount > 0
-                    ? actor.IntentText
-                    : actor.Intent.ToString();
-            }
+            UiSlot.SetText(intentText, actor.IntentAmount > 0
+                ? actor.IntentText
+                : actor.Intent.ToString());
 
-            ApplyIntentIcon(actor.Intent);
-        }
-
-        // Only replaces the sprite when one was actually authored. Blanking the
-        // image for an intent with no art yet would leave a hole that reads as a
-        // broken panel rather than as unfinished art.
-        private void ApplyIntentIcon(IntentType intent)
-        {
-            if (intentIcon == null || intentIcons == null)
-                return;
-
-            foreach (IntentIcon entry in intentIcons)
-            {
-                if (entry.type == intent && entry.sprite != null)
-                {
-                    intentIcon.sprite = entry.sprite;
-                    return;
-                }
-            }
+            ArtTable.Apply(intentIcons, actor.Intent, intentIcon);
         }
 
         // Eased here rather than in Bind so the bar keeps gliding between the
         // events that change it.
         private void Update()
         {
-            _fill = BarFill.Approach(_fill, _targetFill, barSmoothing);
-            BarFill.Set(hpFill, _fill);
+            _fill = UiSlot.Approach(_fill, _targetFill, barSmoothing);
+            UiSlot.SetFill(hpFill, _fill);
         }
 
         /// <summary>Drops the easing, so a reused panel does not sweep in from

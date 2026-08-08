@@ -602,24 +602,24 @@ MonoBehaviour:
   typeFrame: {fileID: 5862554777335081763}
   typeStyles:
   - type: 0
-    frame: {fileID: 21300000, guid: 4d845c6497e7da74aacd0f9d4bff597c, type: 3}
+    sprite: {fileID: 21300000, guid: 4d845c6497e7da74aacd0f9d4bff597c, type: 3}
     tint: {r: 1, g: 1, b: 1, a: 1}
   - type: 1
-    frame: {fileID: 21300000, guid: 99d0a6007b2623f43b04a373663a786e, type: 3}
+    sprite: {fileID: 21300000, guid: 99d0a6007b2623f43b04a373663a786e, type: 3}
     tint: {r: 1, g: 1, b: 1, a: 1}
   - type: 2
-    frame: {fileID: 21300000, guid: a0c2fbbd03675de4f913b0498ce66df5, type: 3}
+    sprite: {fileID: 21300000, guid: a0c2fbbd03675de4f913b0498ce66df5, type: 3}
     tint: {r: 1, g: 1, b: 1, a: 1}
   rarityFrame: {fileID: 3270644066573343993}
   rarityStyles:
-  - rarity: 0
-    frame: {fileID: 21300000, guid: e02136eb9c632b44bba069d0fe69b813, type: 3}
+  - type: 0
+    sprite: {fileID: 21300000, guid: e02136eb9c632b44bba069d0fe69b813, type: 3}
     tint: {r: 1, g: 1, b: 1, a: 1}
-  - rarity: 1
-    frame: {fileID: 21300000, guid: eb9e7363aee425e438296388dc1252bb, type: 3}
+  - type: 1
+    sprite: {fileID: 21300000, guid: eb9e7363aee425e438296388dc1252bb, type: 3}
     tint: {r: 1, g: 1, b: 1, a: 1}
-  - rarity: 2
-    frame: {fileID: 21300000, guid: f8e5cf5ecfa6ed948b1249ba0eeab350, type: 3}
+  - type: 2
+    sprite: {fileID: 21300000, guid: f8e5cf5ecfa6ed948b1249ba0eeab350, type: 3}
     tint: {r: 1, g: 1, b: 1, a: 1}
   fadeGroup: {fileID: 681018388314521888}
   unaffordableAlpha: 0.8

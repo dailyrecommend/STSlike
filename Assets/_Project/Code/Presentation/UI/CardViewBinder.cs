@@ -15,24 +15,6 @@ namespace STSlike.Presentation.UI
     public sealed class CardViewBinder : MonoBehaviour,
         IPointerEnterHandler, IPointerExitHandler, IPointerMoveHandler
     {
-        /// <summary>Per-type framing, so an attack and a skill can read differently.</summary>
-        [Serializable]
-        private struct TypeStyle
-        {
-            public CardType type;
-            public Sprite frame;
-            public Color tint;
-        }
-
-        /// <summary>Per-rarity framing (gem, border colour, ...).</summary>
-        [Serializable]
-        private struct RarityStyle
-        {
-            public CardRarity rarity;
-            public Sprite frame;
-            public Color tint;
-        }
-
         // The card face stays minimal on purpose: the full rules text lives in
         // the hover tooltip, which is what makes a small card shape workable.
         [Tooltip("Child holding everything you can see. The hand layout raises " +
@@ -49,10 +31,13 @@ namespace STSlike.Presentation.UI
         [SerializeField] private Button button;
 
         [Header("Type / Rarity (optional styling)")]
+        [Tooltip("Framing per card type, so an attack and a skill read differently.")]
         [SerializeField] private Image typeFrame;
-        [SerializeField] private TypeStyle[] typeStyles;
+        [SerializeField] private ArtEntry<CardType>[] typeStyles;
+
+        [Tooltip("Framing per rarity — gem, border colour, and so on.")]
         [SerializeField] private Image rarityFrame;
-        [SerializeField] private RarityStyle[] rarityStyles;
+        [SerializeField] private ArtEntry<CardRarity>[] rarityStyles;
 
         [Header("Unaffordable")]
         [SerializeField] private CanvasGroup fadeGroup;
@@ -121,65 +106,19 @@ namespace STSlike.Presentation.UI
             View = view;
             _onClick = onClick;
 
-            SetText(nameText, view.Name);
-            SetText(costText, view.Cost.ToString());
+            UiSlot.SetText(nameText, view.Name);
+            UiSlot.SetText(costText, view.Cost.ToString());
 
-            // Assigned unconditionally, including to null. These instances are
-            // pooled, so skipping a card that has no art of its own would leave
-            // whichever card sat in this slot before still showing — which reads
-            // as the artwork never updating at all.
-            if (artwork != null)
-                artwork.sprite = view.Artwork;
+            // Cleared as well as set: these instances are pooled, so skipping a
+            // card that has no art of its own would leave whichever card sat in
+            // this slot before still showing.
+            UiSlot.SetSpriteOrClear(artwork, view.Artwork);
 
-            ApplyTypeStyle(view.Type);
-            ApplyRarityStyle(view.Rarity);
+            ArtTable.Apply(typeStyles, view.Type, typeFrame);
+            ArtTable.Apply(rarityStyles, view.Rarity, rarityFrame);
 
-            if (button != null)
-                button.interactable = view.IsPlayable;
-            if (fadeGroup != null)
-                fadeGroup.alpha = view.IsPlayable ? 1f : unaffordableAlpha;
-        }
-
-        private void ApplyTypeStyle(CardType type)
-        {
-            if (typeFrame == null || typeStyles == null)
-                return;
-
-            foreach (TypeStyle style in typeStyles)
-            {
-                if (style.type != type)
-                    continue;
-
-                if (style.frame != null)
-                    typeFrame.sprite = style.frame;
-                if (style.tint.a > 0f)
-                    typeFrame.color = style.tint;
-                return;
-            }
-        }
-
-        private void ApplyRarityStyle(CardRarity rarity)
-        {
-            if (rarityFrame == null || rarityStyles == null)
-                return;
-
-            foreach (RarityStyle style in rarityStyles)
-            {
-                if (style.rarity != rarity)
-                    continue;
-
-                if (style.frame != null)
-                    rarityFrame.sprite = style.frame;
-                if (style.tint.a > 0f)
-                    rarityFrame.color = style.tint;
-                return;
-            }
-        }
-
-        private static void SetText(TMP_Text target, string value)
-        {
-            if (target != null)
-                target.text = value;
+            UiSlot.SetInteractable(button, view.IsPlayable);
+            UiSlot.SetAlpha(fadeGroup, view.IsPlayable ? 1f : unaffordableAlpha);
         }
 
         private void HandleClick() => _onClick?.Invoke();

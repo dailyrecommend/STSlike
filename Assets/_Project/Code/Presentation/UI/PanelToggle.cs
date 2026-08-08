@@ -44,8 +44,7 @@ namespace STSlike.Presentation.UI
                 return;
             }
 
-            if (_target.activeSelf != visible)
-                _target.SetActive(visible);
+            UiSlot.SetActive(_target, visible);
         }
     }
 }

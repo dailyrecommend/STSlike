@@ -88,53 +88,6 @@ namespace STSlike.Presentation.UI
         }
     }
 
-    public readonly struct EnemyView
-    {
-        public readonly string Name;
-        public readonly int Hp;
-        public readonly int MaxHp;
-        public readonly int Block;
-        public readonly string IntentKind;
-
-        /// <summary>Damage or block per hit.</summary>
-        public readonly int IntentAmount;
-
-        /// <summary>How many times it lands; 1 for a single hit.</summary>
-        public readonly int IntentHits;
-
-        /// <summary>Motion authored for the move this enemy is about to make.</summary>
-        public readonly string IntentMotion;
-
-        /// <summary>Seconds into that motion at which the first hit lands.</summary>
-        public readonly float IntentImpactDelay;
-
-        /// <summary>Gap between the blows of a multi-hit move.</summary>
-        public readonly float IntentHitInterval;
-
-        public float HpFraction => MaxHp <= 0 ? 0f : (float)Hp / MaxHp;
-
-        /// <summary>"8" for one hit, "5 x3" for a multi-hit.</summary>
-        public string IntentText =>
-            IntentHits > 1 ? $"{IntentAmount} x{IntentHits}" : IntentAmount.ToString();
-
-        public EnemyView(string name, int hp, int maxHp, int block,
-            string intentKind, int intentAmount, int intentHits,
-            string intentMotion = null, float intentImpactDelay = 0f,
-            float intentHitInterval = 0f)
-        {
-            IntentImpactDelay = intentImpactDelay;
-            IntentHitInterval = intentHitInterval;
-            Name = name;
-            Hp = hp;
-            MaxHp = maxHp;
-            Block = block;
-            IntentKind = intentKind;
-            IntentAmount = intentAmount;
-            IntentHits = intentHits < 1 ? 1 : intentHits;
-            IntentMotion = intentMotion;
-        }
-    }
-
     /// <summary>
     /// One card in hand. <see cref="HandIndex"/> is how the UI plays it — the UI
     /// never holds a reference to the card object itself.

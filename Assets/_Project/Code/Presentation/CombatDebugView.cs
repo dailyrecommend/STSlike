@@ -2,9 +2,6 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 using STSlike.Presentation.UI;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
@@ -109,25 +106,8 @@ namespace STSlike.Presentation
 
         private void Update()
         {
-            if (skipHotkeyEnabled && _presenter != null && SkipPressed())
+            if (skipHotkeyEnabled && _presenter != null && GameInput.DebugSkipPressed)
                 _presenter.DebugSkip();
-        }
-
-        /// <summary>
-        /// Reads F10 from whichever input backend the project is set to, so the
-        /// shortcut keeps working regardless of that setting.
-        /// </summary>
-        private static bool SkipPressed()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null)
-                return Keyboard.current.f10Key.wasPressedThisFrame;
-#endif
-#if ENABLE_LEGACY_INPUT_MANAGER
-            return Input.GetKeyDown(KeyCode.F10);
-#else
-            return false;
-#endif
         }
 
         private void OnGUI()

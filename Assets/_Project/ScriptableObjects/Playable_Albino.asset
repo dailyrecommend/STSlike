@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Playable_Albino
   m_EditorClassIdentifier: STSlike.Data::STSlike.Data.CharacterData
   id: AL
+  displayName: Albino
   icon: {fileID: 21300000, guid: a3b43b5c829da7244ac90788ebcbb096, type: 3}
   energyIcon: {fileID: 21300000, guid: e00f52837f2f3144b9405138f71496e8, type: 3}
   modelPrefab: {fileID: 5145211749638053078, guid: 573ce0b7fa7e31347924418f62b69f0b, type: 3}

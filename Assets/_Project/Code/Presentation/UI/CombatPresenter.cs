@@ -242,46 +242,6 @@ namespace STSlike.Presentation.UI
         /// <summary>Every card owned this run, for the deck viewer in the top bar.</summary>
         public IReadOnlyList<CardView> RunDeckContents => Describe(_flow.Run.Cards, sorted: true);
 
-        /// <summary>The default target — the first enemy still standing.</summary>
-        public EnemyView Enemy
-        {
-            get
-            {
-                CombatManager manager = _runner.Current;
-                if (manager == null)
-                    return default;
-
-                IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
-                for (int i = 0; i < enemies.Count; i++)
-                {
-                    if (!enemies[i].IsDead)
-                        return Describe(enemies[i], i);
-                }
-                return Describe(enemies[0], 0);
-            }
-        }
-
-        /// <summary>
-        /// Everyone in the room, for a fight with more than one opponent. Dead
-        /// ones are included so the view can play a death animation before
-        /// removing them.
-        /// </summary>
-        public IReadOnlyList<EnemyView> Enemies
-        {
-            get
-            {
-                var views = new List<EnemyView>();
-                CombatManager manager = _runner.Current;
-                if (manager == null)
-                    return views;
-
-                IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
-                for (int i = 0; i < enemies.Count; i++)
-                    views.Add(Describe(enemies[i], i));
-                return views;
-            }
-        }
-
         /// <summary>
         /// Everyone on stage, the player first and then the room in slot order.
         ///
@@ -321,13 +281,27 @@ namespace STSlike.Presentation.UI
             }
         }
 
-        private EnemyView Describe(Domain.Actors.EnemyState enemy, int slot)
+        /// <summary>
+        /// One figure by reference. False when nobody holds that place — a slot
+        /// the room never filled, or a view a frame out of date.
+        /// </summary>
+        public bool TryGetActor(ActorRef actor, out ActorHudView found)
         {
-            return new EnemyView(enemy.Name, enemy.CurrentHp, enemy.MaxHp, enemy.Block,
-                enemy.Intent.Type.ToString(), enemy.Intent.Amount, enemy.Intent.Hits,
-                MotionFor(slot, enemy.Intent.MoveIndex),
-                ImpactDelayFor(slot, enemy.Intent.MoveIndex),
-                HitIntervalFor(slot, enemy.Intent.MoveIndex));
+            found = default;
+            if (!actor.IsValid)
+                return false;
+
+            IReadOnlyList<ActorHudView> actors = Actors;
+            foreach (ActorHudView candidate in actors)
+            {
+                if (candidate.Actor.IsPlayer != actor.IsPlayer
+                    || candidate.Actor.EnemyIndex != actor.EnemyIndex)
+                    continue;
+
+                found = candidate;
+                return true;
+            }
+            return false;
         }
 
         /// <summary>Looks up the motion authored beside this step of the enemy's routine.</summary>
@@ -349,10 +323,12 @@ namespace STSlike.Presentation.UI
             return data != null ? data.HitIntervalFor(moveIndex) : 0f;
         }
 
+        // Motion and timing are authored beside the asset, so content from
+        // anywhere else simply has none and the stage uses its fallbacks.
         private EnemyData DataFor(int slot)
         {
-            IReadOnlyList<EnemyData> data = _runner.CurrentEnemyData;
-            return slot >= 0 && slot < data.Count ? data[slot] : null;
+            IReadOnlyList<Domain.Actors.IEnemyDefinition> data = _runner.CurrentEnemies;
+            return slot >= 0 && slot < data.Count ? data[slot] as EnemyData : null;
         }
 
         public IReadOnlyList<CardView> Hand

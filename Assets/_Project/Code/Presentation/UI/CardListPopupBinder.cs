@@ -158,8 +158,8 @@ namespace STSlike.Presentation.UI
             IReadOnlyList<CardView> cards = ResolveCards();
             Transform parent = cardContainer != null ? cardContainer : transform;
 
-            SetText(titleText, ResolveTitle());
-            SetText(countText, cards.Count.ToString());
+            UiSlot.SetText(titleText, ResolveTitle());
+            UiSlot.SetText(countText, cards.Count.ToString());
 
             while (_spawned.Count < cards.Count)
             {
@@ -207,10 +207,5 @@ namespace STSlike.Presentation.UI
 
         private void SetPanelActive(bool active) => Panel.Set(active);
 
-        private static void SetText(TMP_Text target, string value)
-        {
-            if (target != null)
-                target.text = value;
-        }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
@@ -6,6 +5,8 @@ using VContainer.Unity;
 using STSlike.Data;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
+using STSlike.Domain.Characters;
+using STSlike.Domain.Content;
 using STSlike.Domain.Events;
 using STSlike.Domain.Map;
 using STSlike.Domain.Progression;
@@ -28,15 +29,16 @@ namespace STSlike.Presentation
     /// </summary>
     public class CombatLifetimeScope : LifetimeScope
     {
-        [Serializable]
-        private struct DeckEntry
-        {
-            public CardData card;
-            public int count;
-        }
+        [Header("Content")]
+        [Tooltip("Everything the game can make. One reference instead of a list " +
+                 "per kind: adding a card is then a matter of creating it and " +
+                 "rescanning, not of remembering to drag it in here.")]
+        [SerializeField] private ContentCatalog catalog;
 
-        [Header("Character (leave empty to use the fallback numbers below)")]
-        [SerializeField] private CharacterData character;
+        [Tooltip("Which character this run plays, by id. A name rather than a " +
+                 "reference, so a save can record it and content the scene has " +
+                 "never heard of can supply it.")]
+        [SerializeField] private string characterId = "albino";
 
         [Header("Run")]
         [SerializeField] private int seed = 0;
@@ -49,29 +51,26 @@ namespace STSlike.Presentation
         [SerializeField] private int firstEliteFloor = 4;
         [SerializeField] private int treasureFloor = 5;
 
-        [Header("Fallback Player Settings (ignored when a Character is assigned)")]
-        [SerializeField] private string characterId = "albino";
-        [SerializeField] private int playerHp = 70;
-        [SerializeField] private int maxEnergy = 3;
-        [SerializeField] private int startingCredits = 100;
-
-        [Header("Enemies (assign EnemyData assets)")]
-        [SerializeField] private List<EnemyData> enemyPool = new List<EnemyData>();
-
-        [Header("Fallback Enemy (used when the pool is empty)")]
+        [Header("Fallback Enemy (used when the catalogue holds none)")]
         [SerializeField] private int enemyHp = 45;
         [SerializeField] private int enemyAttack = 12;
 
-        [Header("Starter Deck (assign CardData assets + counts)")]
-        [SerializeField] private List<DeckEntry> starterDeck = new List<DeckEntry>();
-
         [Header("Rewards")]
-        [SerializeField] private List<CardData> rewardCardPool = new List<CardData>();
         [SerializeField] private int rewardCardChoices = 3;
         [SerializeField] private int rewardHealAmount = 8;
 
+        // Resolved once in Configure and reused by the registrations below.
+        private IContentRegistry _content;
+        private ICharacterDefinition _character;
+
         protected override void Configure(IContainerBuilder builder)
         {
+            // Content is resolved before anything else: the run, the fights and
+            // the rewards are all built out of it.
+            _content = BuildRegistry();
+            _character = ResolveCharacter();
+            builder.RegisterInstance(_content);
+
             builder.Register<IEventBus, EventBus>(Lifetime.Singleton);
             builder.Register<CombatSequencer>(Lifetime.Singleton);
 
@@ -103,13 +102,15 @@ namespace STSlike.Presentation
                 },
                 Lifetime.Singleton);
 
-            // Art for the HUD. Always registered — with empty sprites when no
-            // character asset is assigned yet — so binders never fail to resolve.
+            // Art for the HUD. Always registered — with empty sprites when the
+            // character did not come from an asset — so binders never fail to
+            // resolve.
+            var art = _character as CharacterData;
             builder.RegisterInstance(new CharacterPresentation(
                 ResolvedCharacterId,
-                character != null ? character.Icon : null,
-                character != null ? character.EnergyIcon : null,
-                character != null ? character.ModelPrefab : null));
+                art != null ? art.Icon : null,
+                art != null ? art.EnergyIcon : null,
+                art != null ? art.ModelPrefab : null));
 
             // Meta progression. The repositories are interfaces, so the storage
             // swap lives here and nowhere else — no game code knows which one
@@ -145,7 +146,7 @@ namespace STSlike.Presentation
                     new CombatRunner.Config(cardsPerTurn, enemyHp, enemyAttack),
                     resolver.Resolve<RunContext>(),
                     resolver.Resolve<IRng>(),
-                    enemyPool),
+                    _content),
                 Lifetime.Singleton);
 
             // The flow depends on the launcher abstraction, not on CombatRunner.
@@ -208,20 +209,71 @@ namespace STSlike.Presentation
                 builder.RegisterComponentInHierarchy<T>();
         }
 
-        // A character asset wins when assigned; the loose fields stay so the
-        // scene still runs before one has been authored.
-        private string ResolvedCharacterId => character != null ? character.Id : characterId;
-        private string ResolvedName => character != null ? character.DisplayName : characterId;
-        private int ResolvedMaxHp => character != null ? character.MaxHp : playerHp;
-        private int ResolvedMaxEnergy => character != null ? character.MaxEnergy : maxEnergy;
-        private int ResolvedStartingCredits => character != null ? character.StartingCredits : startingCredits;
+        /// <summary>
+        /// Every source the game should load, in the order they take effect. One
+        /// today; a mod source appended here later would override rather than
+        /// merely add, which is what patching content means.
+        /// </summary>
+        private IContentRegistry BuildRegistry()
+        {
+            var sources = new List<IContentSource>();
+            if (catalog != null)
+                sources.Add(catalog);
+            else
+                Debug.LogError("[CombatLifetimeScope] No content catalogue assigned — " +
+                               "there is nothing to build a run out of.", this);
 
+            var registry = new ContentRegistry(sources);
+
+            // Two assets claiming one id is an authoring mistake while there is
+            // only one source, and silence is what makes it hard to find.
+            foreach (string clash in registry.Overrides)
+                Debug.LogWarning($"[Content] {clash}", this);
+
+            return registry;
+        }
+
+        /// <summary>
+        /// The character this run plays. Falls back to whoever the catalogue
+        /// holds first rather than to invented numbers: a run with the wrong
+        /// character is recoverable, a run with a made-up one is confusing.
+        /// </summary>
+        private ICharacterDefinition ResolveCharacter()
+        {
+            ICharacterDefinition found = _content.Character(characterId);
+            if (found != null)
+                return found;
+
+            if (_content.Characters.Count > 0)
+            {
+                Debug.LogError($"[CombatLifetimeScope] No character with id '{characterId}'. " +
+                               $"Using '{_content.Characters[0].Id}' instead.", this);
+                return _content.Characters[0];
+            }
+
+            Debug.LogError("[CombatLifetimeScope] The catalogue holds no characters.", this);
+            return null;
+        }
+
+        private string ResolvedCharacterId => _character != null ? _character.Id : characterId;
+        private int ResolvedMaxHp => _character != null ? _character.MaxHp : 70;
+        private int ResolvedMaxEnergy => _character != null ? _character.MaxEnergy : 3;
+        private int ResolvedStartingCredits => _character != null ? _character.StartingCredits : 0;
+
+        private string ResolvedName =>
+            _character is CharacterData data ? data.DisplayName : ResolvedCharacterId;
+
+        /// <summary>
+        /// Everything that may be won. Which cards those are is authored on the
+        /// cards themselves, so adding one never means remembering to add it to
+        /// a second list somewhere.
+        /// </summary>
         private List<ICardDefinition> BuildRewardPool()
         {
             var pool = new List<ICardDefinition>();
-            foreach (CardData card in rewardCardPool)
+            foreach (ICardDefinition card in _content.Cards)
             {
-                if (card != null)
+                if (card.Collectable)
                     pool.Add(card);
             }
             return pool;
@@ -230,21 +282,12 @@ namespace STSlike.Presentation
         private List<Card> BuildStarterDeck()
         {
             var cards = new List<Card>();
-
-            if (character != null)
-            {
-                foreach (ICardDefinition definition in character.StartingDeck)
-                    cards.Add(new Card(definition));
+            if (_character == null)
                 return cards;
-            }
 
-            foreach (DeckEntry entry in starterDeck)
-            {
-                if (entry.card == null)
-                    continue;
-                for (int i = 0; i < entry.count; i++)
-                    cards.Add(new Card(entry.card));
-            }
+            foreach (ICardDefinition definition in _character.StartingDeck)
+                cards.Add(new Card(definition));
+
             return cards;
         }
     }
