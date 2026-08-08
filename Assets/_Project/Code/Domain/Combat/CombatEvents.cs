@@ -87,6 +87,39 @@ namespace STSlike.Domain.Combat
         }
     }
 
+    /// <summary>
+    /// Energy was granted by an effect, not by the turn's refill. Separate from
+    /// the refill so a view can react to the gain without flashing at the start
+    /// of every turn.
+    /// </summary>
+    public readonly struct EnergyGainedEvent
+    {
+        public readonly Combatant Actor;
+        public readonly int Amount;
+
+        public EnergyGainedEvent(Combatant actor, int amount)
+        {
+            Actor = actor;
+            Amount = amount;
+        }
+    }
+
+    /// <summary>
+    /// Cards moved into hand. The count is what was actually drawn, which can be
+    /// short of what was asked for when both piles have run dry.
+    /// </summary>
+    public readonly struct CardsDrawnEvent
+    {
+        public readonly Combatant Actor;
+        public readonly int Count;
+
+        public CardsDrawnEvent(Combatant actor, int count)
+        {
+            Actor = actor;
+            Count = count;
+        }
+    }
+
     /// <summary>Block was granted to a combatant.</summary>
     public readonly struct BlockGainedEvent
     {

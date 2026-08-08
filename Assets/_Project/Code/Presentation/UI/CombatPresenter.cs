@@ -88,6 +88,8 @@ namespace STSlike.Presentation.UI
             _bus.Subscribe<CardResolvedEvent>(OnAnyChange);
             _bus.Subscribe<DamageDealtEvent>(OnDamageDealt);
             _bus.Subscribe<BlockGainedEvent>(OnBlockGained);
+            _bus.Subscribe<EnergyGainedEvent>(OnAnyChange);
+            _bus.Subscribe<CardsDrawnEvent>(OnAnyChange);
             _bus.Subscribe<PlayerTurnEndedEvent>(OnPlayerTurnEnded);
             _bus.Subscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Subscribe<MapChoiceOfferedEvent>(OnAnyChange);
@@ -109,6 +111,8 @@ namespace STSlike.Presentation.UI
             _bus.Unsubscribe<CardResolvedEvent>(OnAnyChange);
             _bus.Unsubscribe<DamageDealtEvent>(OnDamageDealt);
             _bus.Unsubscribe<BlockGainedEvent>(OnBlockGained);
+            _bus.Unsubscribe<EnergyGainedEvent>(OnAnyChange);
+            _bus.Unsubscribe<CardsDrawnEvent>(OnAnyChange);
             _bus.Unsubscribe<PlayerTurnEndedEvent>(OnAnyChange);
             _bus.Unsubscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Unsubscribe<MapChoiceOfferedEvent>(OnAnyChange);

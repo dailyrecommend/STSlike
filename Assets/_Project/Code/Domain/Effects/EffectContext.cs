@@ -16,6 +16,17 @@ namespace STSlike.Domain.Effects
         public Combatant Target { get; }
         public IEventBus Bus { get; }
 
+        /// <summary>
+        /// Whoever played this, as a player — null when it was not one.
+        ///
+        /// <see cref="Combatant"/> is only health and block, which is all an
+        /// attack needs, so effects that reach for a deck or for energy had no
+        /// way to ask. Those are player-only concepts here: enemies have neither,
+        /// and null is the honest answer rather than an error, so an effect
+        /// written for a card simply does nothing if an enemy ever runs it.
+        /// </summary>
+        public PlayerState Player => Source as PlayerState;
+
         public EffectContext(Combatant source, Combatant target, IEventBus bus = null)
         {
             Source = source ?? throw new ArgumentNullException(nameof(source));

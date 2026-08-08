@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: ContentCatalog
   m_EditorClassIdentifier: STSlike.Data::STSlike.Data.ContentCatalog
   cards:
+  - {fileID: 11400000, guid: 72e0c42912359c54bb080c535140ffc6, type: 2}
   - {fileID: 11400000, guid: 7350e71ec3f90d340913c0930e970fe3, type: 2}
+  - {fileID: 11400000, guid: 48d2758dcf0f5c947b047c140dc21ed2, type: 2}
   - {fileID: 11400000, guid: 3356d789a553b8349ab9a5944cf1231e, type: 2}
   enemies:
   - {fileID: 11400000, guid: 51e5f1d39cec3d942932017e5f3daf38, type: 2}

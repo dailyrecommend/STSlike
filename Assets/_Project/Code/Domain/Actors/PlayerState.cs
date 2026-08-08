@@ -28,6 +28,22 @@ namespace STSlike.Domain.Actors
         /// <summary>Called at the start of the player's turn.</summary>
         public void RefillEnergy() => Energy = MaxEnergy;
 
+        /// <summary>
+        /// Grants energy outside the turn's refill.
+        ///
+        /// Allowed to go past <see cref="MaxEnergy"/> on purpose: the maximum is
+        /// what a turn begins with, not a ceiling. Clamping here would make a
+        /// card that hands energy back do nothing on a full bar, which is
+        /// exactly the turn you would play it.
+        /// </summary>
+        public void GainEnergy(int amount)
+        {
+            if (amount <= 0)
+                return;
+
+            Energy += amount;
+        }
+
         public bool CanAfford(int cost) => Energy >= cost;
 
         public void SpendEnergy(int cost)
