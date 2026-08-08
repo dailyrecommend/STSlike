@@ -222,12 +222,19 @@ namespace STSlike.Presentation.View
             CombatDisplayState.Vitals landed = Read(victim);
             _display.Defer(victim, landed.Hp, landed.Block);
 
+            // A blow that block ate never reached the figure, so it does not
+            // flinch — the guard held. The pause still happens either way, so a
+            // blocked flurry keeps its rhythm instead of resolving all at once.
+            bool hurt = hit.Hurt;
+
             // Only the reaction is queued here; whoever swung already started
             // their motion when the action began.
             _sequencer.Enqueue(async () =>
             {
                 _display.Reveal(victim);
-                target?.PlayHit();
+
+                if (hurt)
+                    target?.PlayHit();
 
                 // A blow that arrives outside an action, or a queue that has
                 // fallen more than one beat behind, restarts the rhythm here

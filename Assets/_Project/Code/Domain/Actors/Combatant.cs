@@ -35,17 +35,23 @@ namespace STSlike.Domain.Actors
             Block += amount;
         }
 
-        /// <summary>Block absorbs damage first; the remainder reduces HP.</summary>
-        public void TakeDamage(int amount)
+        /// <summary>
+        /// Block absorbs damage first; the remainder reduces HP. Returns the
+        /// health actually lost, which is not the amount asked for: block may
+        /// have eaten all of it, and a killing blow only takes what is left.
+        /// </summary>
+        public int TakeDamage(int amount)
         {
             if (amount <= 0)
-                return;
+                return 0;
 
             int absorbed = Math.Min(Block, amount);
             Block -= absorbed;
 
             int remaining = amount - absorbed;
-            CurrentHp = Math.Max(0, CurrentHp - remaining);
+            int lost = Math.Min(CurrentHp, remaining);
+            CurrentHp -= lost;
+            return lost;
         }
 
         /// <summary>Called at the start of a turn: block does not carry over.</summary>

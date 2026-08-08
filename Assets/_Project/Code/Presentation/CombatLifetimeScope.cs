@@ -97,7 +97,7 @@ namespace STSlike.Presentation
                     });
 
                     var deck = new Deck(rng);
-                    var player = new PlayerState("Player", ResolvedMaxHp, ResolvedMaxEnergy, deck);
+                    var player = new PlayerState(ResolvedName, ResolvedMaxHp, ResolvedMaxEnergy, deck);
                     return new RunContext(map, player, BuildStarterDeck(),
                         seed, ResolvedStartingCredits, ResolvedCharacterId);
                 },
@@ -162,6 +162,10 @@ namespace STSlike.Presentation
             // which raises it, and the stage, which offers targets for it.
             builder.Register<CardSelection>(Lifetime.Singleton);
 
+            // Which figure the pointer is on. Drives the name that appears over
+            // it, and the target highlight while a card is being aimed.
+            builder.Register<ActorHoverChannel>(Lifetime.Singleton);
+
             // Keeps the HUD from running ahead of the animation: the stage parks
             // each blow here and releases it as it plays.
             builder.Register<CombatDisplayState>(Lifetime.Singleton);
@@ -207,6 +211,7 @@ namespace STSlike.Presentation
         // A character asset wins when assigned; the loose fields stay so the
         // scene still runs before one has been authored.
         private string ResolvedCharacterId => character != null ? character.Id : characterId;
+        private string ResolvedName => character != null ? character.DisplayName : characterId;
         private int ResolvedMaxHp => character != null ? character.MaxHp : playerHp;
         private int ResolvedMaxEnergy => character != null ? character.MaxEnergy : maxEnergy;
         private int ResolvedStartingCredits => character != null ? character.StartingCredits : startingCredits;

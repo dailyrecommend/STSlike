@@ -31,9 +31,20 @@ namespace STSlike.Presentation.UI
         public readonly bool IsFinished;
         public readonly bool PlayerWon;
 
+        /// <summary>
+        /// What kind of stop the player is on. Meaningless until they have
+        /// travelled somewhere, which <see cref="HasNode"/> reports — at the
+        /// very start of a run they are not standing anywhere yet.
+        /// </summary>
+        public readonly MapNodeType NodeType;
+        public readonly bool HasNode;
+
         public RunView(string characterId, int floor, int totalFloors, int credits,
-            int deckCount, int seed, bool isFinished, bool playerWon)
+            int deckCount, int seed, bool isFinished, bool playerWon,
+            MapNodeType nodeType = MapNodeType.Combat, bool hasNode = false)
         {
+            NodeType = nodeType;
+            HasNode = hasNode;
             CharacterId = characterId;
             Floor = floor;
             TotalFloors = totalFloors;
@@ -350,17 +361,27 @@ namespace STSlike.Presentation.UI
         public readonly ActorRef Source;
         public readonly ActorRef Target;
         public readonly string TargetName;
+
+        /// <summary>What was thrown, before block had its say.</summary>
         public readonly int Amount;
+
+        /// <summary>Health actually lost. Zero when block absorbed the lot.</summary>
+        public readonly int HpLost;
+
+        /// <summary>The blow landed on flesh, not on a guard.</summary>
+        public bool Hurt => HpLost > 0;
 
         /// <summary>Convenience for HUD code that only cares about the player.</summary>
         public bool OnPlayer => Target.IsPlayer;
 
-        public HitView(ActorRef source, ActorRef target, string targetName, int amount)
+        public HitView(ActorRef source, ActorRef target, string targetName, int amount,
+            int hpLost = 0)
         {
             Source = source;
             Target = target;
             TargetName = targetName;
             Amount = amount;
+            HpLost = hpLost;
         }
     }
 }

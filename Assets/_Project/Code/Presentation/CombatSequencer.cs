@@ -15,6 +15,20 @@ namespace STSlike.Presentation
         private readonly Queue<Func<UniTask>> _steps = new Queue<Func<UniTask>>();
         private bool _running;
 
+        /// <summary>
+        /// True while the screen is still catching up with the rules.
+        ///
+        /// The domain settles a whole turn the moment it is asked to, so "the
+        /// enemy's turn" does not exist as a state it can be asked about — by
+        /// the time the first blow animates it is already the player's turn
+        /// again. This queue draining is what that stretch of time actually is,
+        /// and it is what input has to wait for.
+        /// </summary>
+        public bool IsBusy => _running;
+
+        /// <summary>Raised when <see cref="IsBusy"/> flips, so views can rebind.</summary>
+        public event Action BusyChanged;
+
         public void Enqueue(Func<UniTask> step)
         {
             if (step == null)
@@ -27,7 +41,7 @@ namespace STSlike.Presentation
 
         private async UniTask Run()
         {
-            _running = true;
+            SetRunning(true);
             try
             {
                 while (_steps.Count > 0)
@@ -38,8 +52,17 @@ namespace STSlike.Presentation
             }
             finally
             {
-                _running = false;
+                SetRunning(false);
             }
+        }
+
+        private void SetRunning(bool running)
+        {
+            if (_running == running)
+                return;
+
+            _running = running;
+            BusyChanged?.Invoke();
         }
     }
 }

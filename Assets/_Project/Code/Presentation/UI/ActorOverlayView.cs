@@ -29,8 +29,16 @@ namespace STSlike.Presentation.UI
             public Sprite sprite;
         }
 
-        [Header("Health")]
+        [Header("Name (shown only under the pointer)")]
         [SerializeField] private TMP_Text nameText;
+
+        [Tooltip("Object holding the name — a plate, a backing, whatever it sits " +
+                 "on. Falls back to the text's own object. Hidden unless the " +
+                 "pointer is on this figure, so a crowded room is not a wall of " +
+                 "labels.")]
+        [SerializeField] private GameObject nameRoot;
+
+        [Header("Health")]
         [SerializeField] private Image hpFill;
         [SerializeField] private TMP_Text hpText;
 
@@ -78,6 +86,8 @@ namespace STSlike.Presentation.UI
             Show(targetedHighlight, targeted);
         }
 
+        private GameObject NameObject => nameText != null ? nameText.gameObject : null;
+
         private static void Show(GameObject target, bool visible)
         {
             if (target != null && target.activeSelf != visible)
@@ -89,10 +99,12 @@ namespace STSlike.Presentation.UI
         /// is allowed to see, so the bar over a head and the bar in the corner
         /// tell the same story through a flurry.
         /// </summary>
-        public void Bind(ActorHudView actor, int shownHp, int shownBlock)
+        public void Bind(ActorHudView actor, int shownHp, int shownBlock, bool named)
         {
             if (nameText != null)
                 nameText.text = actor.Name;
+
+            Show(nameRoot != null ? nameRoot : NameObject, named);
 
             if (hpText != null)
                 hpText.text = $"{shownHp}/{actor.MaxHp}";

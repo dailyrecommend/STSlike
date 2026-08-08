@@ -35,6 +35,7 @@ namespace STSlike.Presentation.UI
         private CombatDisplayState _display;
         private IActorStage _stage;
         private CardSelection _selection;
+        private ActorHoverChannel _hover;
 
         private readonly List<ActorOverlayView> _panels = new List<ActorOverlayView>();
         private Canvas _canvas;
@@ -45,16 +46,18 @@ namespace STSlike.Presentation.UI
 
         [Inject]
         public void Construct(CombatPresenter presenter, CombatDisplayState display,
-            IActorStage stage, CardSelection selection)
+            IActorStage stage, CardSelection selection, ActorHoverChannel hover)
         {
             _presenter = presenter;
             _display = display;
             _stage = stage;
             _selection = selection;
+            _hover = hover;
 
             _presenter.Changed += MarkDirty;
             _display.Changed += MarkDirty;
             _selection.Changed += MarkDirty;
+            _hover.Changed += MarkDirty;
         }
 
         private void OnDestroy()
@@ -65,6 +68,8 @@ namespace STSlike.Presentation.UI
                 _display.Changed -= MarkDirty;
             if (_selection != null)
                 _selection.Changed -= MarkDirty;
+            if (_hover != null)
+                _hover.Changed -= MarkDirty;
         }
 
         private void MarkDirty() => _dirty = true;
@@ -108,7 +113,7 @@ namespace STSlike.Presentation.UI
 
                 if (_dirty || !wasVisible)
                 {
-                    panel.Bind(actor, shown.Hp, shown.Block);
+                    panel.Bind(actor, shown.Hp, shown.Block, _hover.Is(actor.Actor));
                     BindTargeting(panel, actor);
                 }
             }
@@ -125,11 +130,7 @@ namespace STSlike.Presentation.UI
         private void BindTargeting(ActorOverlayView panel, ActorHudView actor)
         {
             bool targetable = actor.IsEnemy && _selection.IsAiming && _selection.NeedsTarget;
-            bool targeted = targetable
-                            && !_selection.Hovered.IsPlayer
-                            && _selection.Hovered.EnemyIndex == actor.Actor.EnemyIndex;
-
-            panel.SetTargeting(targetable, targeted);
+            panel.SetTargeting(targetable, targetable && _hover.Is(actor.Actor));
         }
 
         /// <summary>

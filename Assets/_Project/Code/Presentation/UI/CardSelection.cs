@@ -42,13 +42,6 @@ namespace STSlike.Presentation.UI
 
         private int _selectedFrame = -1;
 
-        /// <summary>
-        /// The figure under the pointer while aiming — where the card would land
-        /// if it were thrown right now. Not a commitment; it changes as the
-        /// pointer moves and is only there so the target can light up.
-        /// </summary>
-        public ActorRef Hovered { get; private set; } = ActorRef.None;
-
         public event Action Changed;
 
         /// <summary>Picks a card up, ready to be committed.</summary>
@@ -63,29 +56,15 @@ namespace STSlike.Presentation.UI
             Changed?.Invoke();
         }
 
-        /// <summary>Points the aim at a figure, or at nobody.</summary>
-        public void Hover(ActorRef actor)
-        {
-            if (Same(Hovered, actor))
-                return;
-
-            Hovered = actor;
-            Changed?.Invoke();
-        }
-
         /// <summary>Puts the card back. Safe to call when nothing is aimed.</summary>
         public void Clear()
         {
-            if (HandIndex < 0 && !Hovered.IsValid)
+            if (HandIndex < 0)
                 return;
 
             HandIndex = -1;
             NeedsTarget = false;
-            Hovered = ActorRef.None;
             Changed?.Invoke();
         }
-
-        private static bool Same(ActorRef a, ActorRef b) =>
-            a.IsPlayer == b.IsPlayer && a.EnemyIndex == b.EnemyIndex;
     }
 }

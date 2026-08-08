@@ -25,9 +25,14 @@ namespace STSlike.Data
         }
 
         [Header("Identity")]
+        [Tooltip("Key used by saves and statistics. Never shown, so it can stay " +
+                 "stable while the name on screen changes.")]
         [SerializeField] private string id = "albino";
 
         [Header("Presentation (read by the UI, not by combat)")]
+        [Tooltip("Name shown above the figure. Falls back to the id when empty.")]
+        [SerializeField] private string displayName;
+
         [SerializeField] private Sprite icon;
         [SerializeField] private Sprite energyIcon;
 
@@ -46,6 +51,9 @@ namespace STSlike.Data
         public int MaxHp => maxHp;
         public int MaxEnergy => maxEnergy;
         public int StartingCredits => startingCredits;
+
+        /// <summary>Falls back to the id so an unnamed character still reads.</summary>
+        public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? id : displayName;
 
         /// <summary>Portrait shown in the top-left of the HUD.</summary>
         public Sprite Icon => icon;

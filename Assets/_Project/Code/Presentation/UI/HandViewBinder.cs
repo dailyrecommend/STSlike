@@ -139,9 +139,10 @@ namespace STSlike.Presentation.UI
             Transform parent = cardContainer != null ? cardContainer : transform;
             IReadOnlyList<CardView> hand = _presenter.Hand;
 
-            // The hand has been redealt or the fight is over, so whatever was
-            // being aimed is no longer that card — or any card.
-            if (_selection.HandIndex >= hand.Count || !_presenter.IsInCombat)
+            // The hand has been redealt, the fight is over, or the screen has
+            // fallen behind — whatever was being aimed is no longer that card,
+            // or the player is no longer allowed to throw it.
+            if (_selection.HandIndex >= hand.Count || !_presenter.CanAct)
                 _selection.Clear();
 
             // Grow the pool to fit the current hand.

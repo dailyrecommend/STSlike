@@ -1,7 +1,9 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using STSlike.Domain.Map;
 
 namespace STSlike.Presentation.UI
 {
@@ -15,11 +17,30 @@ namespace STSlike.Presentation.UI
     /// </summary>
     public sealed class CombatHudBinder : MonoBehaviour
     {
+        /// <summary>Art for one kind of stop, chosen in the inspector.</summary>
+        [Serializable]
+        private struct StageIcon
+        {
+            public MapNodeType type;
+            public Sprite sprite;
+        }
+
         [Header("Top Bar")]
         [SerializeField] private Image characterIcon;
         [SerializeField] private TMP_Text floorText;
         [SerializeField] private TMP_Text creditsText;
         [SerializeField] private TMP_Text deckCountText;
+
+        [Header("Current Stage")]
+        [Tooltip("Shows what kind of stop the player is on: a normal fight, an " +
+                 "elite, a rest, the boss. The floor number says how far along " +
+                 "the act they are; this says what they walked into. Hidden " +
+                 "until they have travelled somewhere.")]
+        [SerializeField] private Image stageIcon;
+
+        [Tooltip("Art per kind. A kind with no entry keeps whatever sprite the " +
+                 "prefab already has, so unfinished art never blanks the slot.")]
+        [SerializeField] private StageIcon[] stageIcons;
 
         [Header("Piles (bottom bar)")]
         [SerializeField] private TMP_Text drawCountText;
@@ -121,6 +142,7 @@ namespace STSlike.Presentation.UI
             SetText(floorText, run.Floor.ToString());
             SetText(creditsText, run.Credits.ToString());
             SetText(deckCountText, run.DeckCount.ToString());
+            ApplyStage(run);
 
             PlayerView player = _presenter.Player;
             CombatDisplayState.Vitals shown = Shown(player);
@@ -130,6 +152,10 @@ namespace STSlike.Presentation.UI
             SetText(drawCountText, player.DrawCount.ToString());
             SetText(discardCountText, player.DiscardCount.ToString());
             SetText(turnText, _presenter.Turn.ToString());
+
+            // Greyed out while the enemy's turn is playing out on screen.
+            if (endTurnButton != null)
+                endTurnButton.interactable = _presenter.CanAct;
 
             SetActive(combatRoot, _presenter.IsInCombat);
             SetActive(rewardRoot, _presenter.IsAwaitingReward);
@@ -161,6 +187,30 @@ namespace STSlike.Presentation.UI
             _display != null
                 ? _display.Of(ActorRef.Player, player.Hp, player.Block)
                 : new CombatDisplayState.Vitals(player.Hp, player.Block);
+
+        /// <summary>
+        /// Names the kind of stop the player is standing on. Uses the same
+        /// mapping shape as the map's own node art, so the icon in the top bar
+        /// and the icon on the map can be the same sprite.
+        /// </summary>
+        private void ApplyStage(RunView run)
+        {
+            if (stageIcon == null)
+                return;
+
+            SetActive(stageIcon.gameObject, run.HasNode);
+            if (!run.HasNode || stageIcons == null)
+                return;
+
+            foreach (StageIcon entry in stageIcons)
+            {
+                if (entry.type == run.NodeType && entry.sprite != null)
+                {
+                    stageIcon.sprite = entry.sprite;
+                    return;
+                }
+            }
+        }
 
         // Block is usually hidden entirely at zero rather than shown as "0".
         private static void SetBlock(GameObject root, TMP_Text text, int block)

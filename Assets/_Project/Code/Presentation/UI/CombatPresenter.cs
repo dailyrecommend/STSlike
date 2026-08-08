@@ -29,11 +29,16 @@ namespace STSlike.Presentation.UI
         private readonly IEventBus _bus;
         private readonly RunFlow _flow;
         private readonly CombatRunner _runner;
+        private readonly CombatSequencer _sequencer;
 
         private readonly List<Card> _handCards = new List<Card>();
         private readonly List<CardView> _hand = new List<CardView>();
         private readonly List<RewardView> _rewards = new List<RewardView>();
         private readonly List<ActorHudView> _actors = new List<ActorHudView>();
+
+        // Set when the turn is handed over, cleared once the screen has finished
+        // showing what the enemy did with it.
+        private bool _resolvingEnemyTurn;
 
         /// <summary>Any visible state may have changed; rebind the HUD.</summary>
         public event Action Changed;
@@ -63,11 +68,17 @@ namespace STSlike.Presentation.UI
         /// <summary>True when the run is over; the bool is whether it was cleared.</summary>
         public event Action<bool> RunEnded;
 
-        public CombatPresenter(IEventBus bus, RunFlow flow, CombatRunner runner)
+        public CombatPresenter(IEventBus bus, RunFlow flow, CombatRunner runner,
+            CombatSequencer sequencer)
         {
             _bus = bus ?? throw new ArgumentNullException(nameof(bus));
             _flow = flow ?? throw new ArgumentNullException(nameof(flow));
             _runner = runner ?? throw new ArgumentNullException(nameof(runner));
+            _sequencer = sequencer ?? throw new ArgumentNullException(nameof(sequencer));
+
+            // Whether the screen has caught up is not something the rules raise
+            // an event about, but it decides whether the player may act.
+            _sequencer.BusyChanged += OnSequencerBusyChanged;
 
             _bus.Subscribe<EncounterStartedEvent>(OnEncounterStarted);
             _bus.Subscribe<CombatStartedEvent>(OnCombatStarted);
@@ -77,7 +88,7 @@ namespace STSlike.Presentation.UI
             _bus.Subscribe<CardResolvedEvent>(OnAnyChange);
             _bus.Subscribe<DamageDealtEvent>(OnDamageDealt);
             _bus.Subscribe<BlockGainedEvent>(OnBlockGained);
-            _bus.Subscribe<PlayerTurnEndedEvent>(OnAnyChange);
+            _bus.Subscribe<PlayerTurnEndedEvent>(OnPlayerTurnEnded);
             _bus.Subscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Subscribe<MapChoiceOfferedEvent>(OnAnyChange);
             _bus.Subscribe<NodeEnteredEvent>(OnAnyChange);
@@ -89,6 +100,7 @@ namespace STSlike.Presentation.UI
 
         public void Dispose()
         {
+            _sequencer.BusyChanged -= OnSequencerBusyChanged;
             _bus.Unsubscribe<EncounterStartedEvent>(OnEncounterStarted);
             _bus.Unsubscribe<CombatStartedEvent>(OnCombatStarted);
             _bus.Unsubscribe<EnemyActionStartedEvent>(OnEnemyActionStarted);
@@ -117,6 +129,30 @@ namespace STSlike.Presentation.UI
 
         /// <summary>True at a rest, treasure or shop node waiting to be acknowledged.</summary>
         public bool IsVisitingNode => _flow.IsVisitingNode;
+
+        /// <summary>
+        /// True while the enemy's turn is playing out on screen.
+        ///
+        /// The rules have no such state to ask about: ending a turn settles the
+        /// enemy's whole reply on the spot and hands the turn straight back. The
+        /// stretch the player experiences as the enemy's turn is the screen
+        /// catching up afterwards, which is this — the turn was ended, and the
+        /// queue has not drained yet.
+        ///
+        /// Guarded by the queue as well as the flag so a fight with no stage to
+        /// animate never locks: with nothing enqueued, it is over at once.
+        /// </summary>
+        public bool IsEnemyTurn => _resolvingEnemyTurn && _sequencer.IsBusy;
+
+        /// <summary>
+        /// Whether the player may play a card or end the turn right now.
+        ///
+        /// Their own cards do not block them: playing two in a row is allowed
+        /// and the animations simply queue behind each other, which is how a
+        /// deck that chains cards is meant to feel. It is the enemy's reply
+        /// that has to be watched before the board can be acted on again.
+        /// </summary>
+        public bool CanAct => IsInCombat && !IsEnemyTurn;
 
         /// <summary>False while any other screen is up or the run has ended.</summary>
         public bool IsInCombat =>
@@ -173,8 +209,11 @@ namespace STSlike.Presentation.UI
             get
             {
                 RunContext run = _flow.Run;
+                MapNode node = run.CurrentNode;
+
                 return new RunView(run.CharacterId, run.Floor, run.TotalFloors,
-                    run.Credits, run.Cards.Count, run.Seed, run.IsFinished, run.PlayerWon);
+                    run.Credits, run.Cards.Count, run.Seed, run.IsFinished, run.PlayerWon,
+                    node != null ? node.Type : MapNodeType.Combat, node != null);
             }
         }
 
@@ -347,7 +386,7 @@ namespace STSlike.Presentation.UI
         public void PlayCard(int handIndex, int enemySlot = -1)
         {
             CombatManager manager = _runner.Current;
-            if (manager == null || !IsInCombat)
+            if (manager == null || !CanAct)
                 return;
 
             RebuildHand();
@@ -371,7 +410,7 @@ namespace STSlike.Presentation.UI
 
         public void EndTurn()
         {
-            if (IsInCombat)
+            if (CanAct)
                 _runner.Current.EndTurn();
         }
 
@@ -434,6 +473,23 @@ namespace STSlike.Presentation.UI
             RaiseChanged();
         }
 
+        // Raised before the enemy acts, and the enemy's whole turn follows in the
+        // same breath — so this is the last moment the player is known to have
+        // handed control over.
+        private void OnPlayerTurnEnded(PlayerTurnEndedEvent e)
+        {
+            _resolvingEnemyTurn = true;
+            RaiseChanged();
+        }
+
+        private void OnSequencerBusyChanged()
+        {
+            if (!_sequencer.IsBusy)
+                _resolvingEnemyTurn = false;
+
+            RaiseChanged();
+        }
+
         private void OnPlayerTurnStarted(PlayerTurnStartedEvent e)
         {
             PlayerTurnStarted?.Invoke();
@@ -466,7 +522,8 @@ namespace STSlike.Presentation.UI
 
         private void OnDamageDealt(DamageDealtEvent e)
         {
-            Hit?.Invoke(new HitView(Identify(e.Source), Identify(e.Target), e.Target.Name, e.Amount));
+            Hit?.Invoke(new HitView(Identify(e.Source), Identify(e.Target),
+                e.Target.Name, e.Amount, e.HpLost));
             RaiseChanged();
         }
 
@@ -595,13 +652,18 @@ namespace STSlike.Presentation.UI
             if (manager == null)
                 return;
 
+            // Playable means "clicking this would do something", which is not
+            // only about energy: the whole hand dims while the enemy is taking
+            // its turn. Cards the player is chaining themselves stay lit.
+            bool canAct = CanAct;
+
             var player = manager.Context.Player;
             IReadOnlyList<Card> cards = player.Deck.Hand.Cards;
             for (int i = 0; i < cards.Count; i++)
             {
                 Card card = cards[i];
                 _handCards.Add(card);
-                _hand.Add(BuildCardView(card, i, player.CanAfford(card.Cost)));
+                _hand.Add(BuildCardView(card, i, canAct && player.CanAfford(card.Cost)));
             }
         }
 

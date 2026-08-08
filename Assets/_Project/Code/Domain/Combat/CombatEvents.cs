@@ -67,13 +67,23 @@ namespace STSlike.Domain.Combat
     {
         public readonly Combatant Source;
         public readonly Combatant Target;
+
+        /// <summary>What was thrown, before block had its say.</summary>
         public readonly int Amount;
 
-        public DamageDealtEvent(Combatant source, Combatant target, int amount)
+        /// <summary>
+        /// What actually reached health. Zero when block ate the whole blow —
+        /// which is the difference between a hit that hurt and one that did not,
+        /// and the only way a view can tell them apart.
+        /// </summary>
+        public readonly int HpLost;
+
+        public DamageDealtEvent(Combatant source, Combatant target, int amount, int hpLost = 0)
         {
             Source = source;
             Target = target;
             Amount = amount;
+            HpLost = hpLost;
         }
     }
 
