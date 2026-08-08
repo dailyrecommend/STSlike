@@ -9,13 +9,17 @@ namespace STSlike.Presentation
     /// One row of an inspector art table: "this kind looks like this".
     ///
     /// Generic so the same row serves cards, map nodes, intents and anything
-    /// else keyed by a kind. The field is called <c>type</c> rather than
-    /// <c>key</c> because that is what every one of these tables already called
-    /// it — renaming would have thrown away the art already assigned in the
-    /// prefabs, and Unity matches serialized data by name.
+    /// else keyed by a fixed set of kinds. Content keyed by a string id — cards,
+    /// enemies, conditions — is described by its own asset instead, since a
+    /// table per prefab drifts as that content grows.
+    ///
+    /// The field is called <c>type</c> rather than <c>key</c> because that is
+    /// what every one of these tables already called it — renaming would have
+    /// thrown away the art already assigned in the prefabs, and Unity matches
+    /// serialized data by name.
     /// </summary>
     [Serializable]
-    public struct ArtEntry<TKey> where TKey : struct
+    public struct ArtEntry<TKey>
     {
         public TKey type;
         public Sprite sprite;
@@ -41,7 +45,7 @@ namespace STSlike.Presentation
     internal static class ArtTable
     {
         public static bool TryFind<TKey>(ArtEntry<TKey>[] entries, TKey type,
-            out ArtEntry<TKey> found) where TKey : struct
+            out ArtEntry<TKey> found)
         {
             found = default;
             if (entries == null)
@@ -63,7 +67,6 @@ namespace STSlike.Presentation
         /// opinion about exactly as the prefab had it.
         /// </summary>
         public static void Apply<TKey>(ArtEntry<TKey>[] entries, TKey type, Image target)
-            where TKey : struct
         {
             if (target == null || !TryFind(entries, type, out ArtEntry<TKey> entry))
                 return;
@@ -79,7 +82,6 @@ namespace STSlike.Presentation
         /// For callers that colour something other than the image they applied.
         /// </summary>
         public static Color Tint<TKey>(ArtEntry<TKey>[] entries, TKey type, Color fallback)
-            where TKey : struct
         {
             return TryFind(entries, type, out ArtEntry<TKey> entry) && entry.tint.a > 0f
                 ? entry.tint

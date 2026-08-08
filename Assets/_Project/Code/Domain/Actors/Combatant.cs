@@ -1,4 +1,5 @@
 using System;
+using STSlike.Domain.Statuses;
 
 namespace STSlike.Domain.Actors
 {
@@ -14,6 +15,9 @@ namespace STSlike.Domain.Actors
         public int Block { get; private set; }
 
         public bool IsDead => CurrentHp <= 0;
+
+        /// <summary>What this figure is currently suffering.</summary>
+        public StatusTracker Statuses { get; } = new StatusTracker();
 
         public Combatant(string name, int maxHp)
         {

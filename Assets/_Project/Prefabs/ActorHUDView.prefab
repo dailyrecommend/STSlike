@@ -274,6 +274,81 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 4.95
+--- !u!1 &1644876851965668729
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3870109673397811160}
+  - component: {fileID: 5530591881412716039}
+  - component: {fileID: 1714102918219661715}
+  m_Layer: 5
+  m_Name: StatusContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &3870109673397811160
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1644876851965668729}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2477381699787540641}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: 0, y: -48.9}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 1}
+--- !u!114 &5530591881412716039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1644876851965668729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a8695521f0d02e499659fee002a26c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GridLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 0
+  m_StartCorner: 0
+  m_StartAxis: 0
+  m_CellSize: {x: 35, y: 35}
+  m_Spacing: {x: 0, y: 0}
+  m_Constraint: 0
+  m_ConstraintCount: 2
+--- !u!114 &1714102918219661715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1644876851965668729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
+  m_HorizontalFit: 0
+  m_VerticalFit: 2
 --- !u!1 &2706601688845114276
 GameObject:
   m_ObjectHideFlags: 0
@@ -826,11 +901,12 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1289444360262909953}
+  - {fileID: 9105163683154302646}
   - {fileID: 6520632360515618854}
   - {fileID: 5526569521774891588}
   - {fileID: 1115158812909162055}
-  - {fileID: 1289444360262909953}
-  - {fileID: 9105163683154302646}
+  - {fileID: 3870109673397811160}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -851,6 +927,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: STSlike.Presentation::STSlike.Presentation.UI.ActorOverlayView
   nameText: {fileID: 2134515245609593811}
+  nameRoot: {fileID: 7563743778120641435}
   hpFill: {fileID: 8469350102186471534}
   hpText: {fileID: 4795985097930108758}
   barSmoothing: 20
@@ -858,16 +935,22 @@ MonoBehaviour:
   blockText: {fileID: 325955860546060777}
   targetableHighlight: {fileID: 982458552793852158}
   targetedHighlight: {fileID: 1554989915646449227}
+  statusContainer: {fileID: 3870109673397811160}
+  statusIconPrefab: {fileID: 5286425359864086295, guid: 243805151e58e9f4dbfd4d42386c8bdd, type: 3}
+  statusCatalog: {fileID: 11400000, guid: 957c877b0a8e7ec458ec7f0187549556, type: 2}
   intentRoot: {fileID: 373861586121685073}
   intentText: {fileID: 925877485396836259}
   intentIcon: {fileID: 3613223474699221880}
   intentIcons:
   - type: 0
     sprite: {fileID: 21300000, guid: fdfc49746d55eba45a59ad2b5e5431d6, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 1
     sprite: {fileID: 21300000, guid: 57b9d5aec32b54d40b2d328115905e55, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
   - type: 2
     sprite: {fileID: 21300000, guid: 0f9f512e65bd9cb4383a34fc0c2262a8, type: 3}
+    tint: {r: 0, g: 0, b: 0, a: 0}
 --- !u!1 &4827173365301019767
 GameObject:
   m_ObjectHideFlags: 0

@@ -10,6 +10,7 @@ using STSlike.Domain.Events;
 using STSlike.Domain.Map;
 using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
+using STSlike.Domain.Statuses;
 
 namespace STSlike.Presentation.UI
 {
@@ -30,6 +31,7 @@ namespace STSlike.Presentation.UI
         private readonly RunFlow _flow;
         private readonly CombatRunner _runner;
         private readonly CombatSequencer _sequencer;
+        private readonly ActorHoverChannel _hover;
 
         private readonly List<Card> _handCards = new List<Card>();
         private readonly List<CardView> _hand = new List<CardView>();
@@ -69,16 +71,21 @@ namespace STSlike.Presentation.UI
         public event Action<bool> RunEnded;
 
         public CombatPresenter(IEventBus bus, RunFlow flow, CombatRunner runner,
-            CombatSequencer sequencer)
+            CombatSequencer sequencer, ActorHoverChannel hover)
         {
             _bus = bus ?? throw new ArgumentNullException(nameof(bus));
             _flow = flow ?? throw new ArgumentNullException(nameof(flow));
             _runner = runner ?? throw new ArgumentNullException(nameof(runner));
             _sequencer = sequencer ?? throw new ArgumentNullException(nameof(sequencer));
+            _hover = hover ?? throw new ArgumentNullException(nameof(hover));
 
             // Whether the screen has caught up is not something the rules raise
             // an event about, but it decides whether the player may act.
             _sequencer.BusyChanged += OnSequencerBusyChanged;
+
+            // Which figure is being pointed at changes what the cards in hand
+            // print, so the hand has to be redrawn as the aim moves.
+            _hover.Changed += RaiseChanged;
 
             _bus.Subscribe<EncounterStartedEvent>(OnEncounterStarted);
             _bus.Subscribe<CombatStartedEvent>(OnCombatStarted);
@@ -90,6 +97,7 @@ namespace STSlike.Presentation.UI
             _bus.Subscribe<BlockGainedEvent>(OnBlockGained);
             _bus.Subscribe<EnergyGainedEvent>(OnAnyChange);
             _bus.Subscribe<CardsDrawnEvent>(OnAnyChange);
+            _bus.Subscribe<StatusChangedEvent>(OnAnyChange);
             _bus.Subscribe<PlayerTurnEndedEvent>(OnPlayerTurnEnded);
             _bus.Subscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Subscribe<MapChoiceOfferedEvent>(OnAnyChange);
@@ -103,6 +111,7 @@ namespace STSlike.Presentation.UI
         public void Dispose()
         {
             _sequencer.BusyChanged -= OnSequencerBusyChanged;
+            _hover.Changed -= RaiseChanged;
             _bus.Unsubscribe<EncounterStartedEvent>(OnEncounterStarted);
             _bus.Unsubscribe<CombatStartedEvent>(OnCombatStarted);
             _bus.Unsubscribe<EnemyActionStartedEvent>(OnEnemyActionStarted);
@@ -113,7 +122,8 @@ namespace STSlike.Presentation.UI
             _bus.Unsubscribe<BlockGainedEvent>(OnBlockGained);
             _bus.Unsubscribe<EnergyGainedEvent>(OnAnyChange);
             _bus.Unsubscribe<CardsDrawnEvent>(OnAnyChange);
-            _bus.Unsubscribe<PlayerTurnEndedEvent>(OnAnyChange);
+            _bus.Unsubscribe<StatusChangedEvent>(OnAnyChange);
+            _bus.Unsubscribe<PlayerTurnEndedEvent>(OnPlayerTurnEnded);
             _bus.Unsubscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Unsubscribe<MapChoiceOfferedEvent>(OnAnyChange);
             _bus.Unsubscribe<NodeEnteredEvent>(OnAnyChange);
@@ -311,18 +321,51 @@ namespace STSlike.Presentation.UI
         {
             PlayerView player = Player;
             return new ActorHudView(ActorRef.Player, player.Name,
-                player.Hp, player.MaxHp, player.Block, isEnemy: false);
+                player.Hp, player.MaxHp, player.Block, isEnemy: false,
+                statuses: Describe(_flow.Run.Player.Statuses));
         }
 
-        private static ActorHudView DescribeEnemy(Domain.Actors.EnemyState enemy, int slot)
+        private ActorHudView DescribeEnemy(Domain.Actors.EnemyState enemy, int slot)
         {
             Domain.Actors.EnemyIntent intent = enemy.Intent;
 
             return new ActorHudView(ActorRef.Enemy(slot), enemy.Name,
                 enemy.CurrentHp, enemy.MaxHp, enemy.Block, isEnemy: true,
                 intent != null ? intent.Type : IntentType.Unknown,
-                intent != null ? intent.Amount : 0,
-                intent != null ? intent.Hits : 1);
+                intent != null ? IntentAmount(enemy, intent) : 0,
+                intent != null ? intent.Hits : 1,
+                Describe(enemy.Statuses));
+        }
+
+        /// <summary>
+        /// The number to print on an intent: what the blow will really land for,
+        /// not what the enemy's pattern was authored with.
+        ///
+        /// A weakened enemy telegraphing its unmodified damage is the same lie
+        /// as a card promising more than it deals, and it is the number the
+        /// player plans their whole turn around.
+        /// </summary>
+        private int IntentAmount(Domain.Actors.EnemyState enemy, Domain.Actors.EnemyIntent intent)
+        {
+            // Only attacks are shaped by these conditions; a guard is a guard.
+            if (intent.Type != IntentType.Attack)
+                return intent.Amount;
+
+            return DamageCalculation.Resolve(enemy, _flow.Run.Player, intent.Amount);
+        }
+
+        // A fresh list per figure: these are handed out inside a view model that
+        // outlives the call, so a reused buffer would be rewritten under it.
+        private static IReadOnlyList<StatusView> Describe(StatusTracker statuses)
+        {
+            if (statuses.Active.Count == 0)
+                return Array.Empty<StatusView>();
+
+            var views = new List<StatusView>(statuses.Active.Count);
+            foreach (ActiveStatus entry in statuses.Active)
+                views.Add(new StatusView(entry.Id, entry.Stacks));
+
+            return views;
         }
 
         /// <summary>Looks up the motion authored beside this step of the enemy's routine.</summary>
@@ -568,6 +611,41 @@ namespace STSlike.Presentation.UI
             RaiseChanged();
         }
 
+        /// <summary>
+        /// Who a card's printed numbers are measured against.
+        ///
+        /// The figure under the pointer when there is one, so aiming at the
+        /// weakened enemy rather than the vulnerable one shows the difference
+        /// before committing. Otherwise the first opponent standing, which is
+        /// who an unaimed card would hit anyway.
+        ///
+        /// Null outside a fight, where a browsed card has nobody to aim at.
+        /// </summary>
+        private Combatant PreviewTarget
+        {
+            get
+            {
+                CombatManager manager = _runner.Current;
+                if (manager == null)
+                    return null;
+
+                IReadOnlyList<Domain.Actors.EnemyState> enemies = manager.Context.Enemies;
+
+                ActorRef pointed = _hover != null ? _hover.Hovered : ActorRef.None;
+                if (pointed.IsValid && !pointed.IsPlayer
+                    && pointed.EnemyIndex < enemies.Count
+                    && !enemies[pointed.EnemyIndex].IsDead)
+                    return enemies[pointed.EnemyIndex];
+
+                foreach (Domain.Actors.EnemyState enemy in enemies)
+                {
+                    if (!enemy.IsDead)
+                        return enemy;
+                }
+                return null;
+            }
+        }
+
         private void OnAnyChange<T>(T _) => RaiseChanged();
 
         private void RaiseChanged() => Changed?.Invoke();
@@ -576,7 +654,7 @@ namespace STSlike.Presentation.UI
         // never be wired to PlayCard by accident. They are still marked playable
         // because that flag drives the "cannot afford" dimming — a card being
         // browsed in a pile should look normal, not greyed out.
-        private static List<CardView> Describe(IReadOnlyList<Card> cards, bool sorted)
+        private List<CardView> Describe(IReadOnlyList<Card> cards, bool sorted)
         {
             var views = new List<CardView>(cards.Count);
             foreach (Card card in cards)
@@ -588,7 +666,7 @@ namespace STSlike.Presentation.UI
             return views;
         }
 
-        private static CardView BuildCardView(Card card, int handIndex, bool playable)
+        private CardView BuildCardView(Card card, int handIndex, bool playable)
         {
             // The definition at runtime is the authoring asset, so the display
             // fields can be read straight off it. Definitions built in code
@@ -613,15 +691,28 @@ namespace STSlike.Presentation.UI
         /// Fills "{0}" style placeholders with the effects' own numbers, in the
         /// order the effects are listed. Keeping the text tied to the effects is
         /// what stops a rebalanced or upgraded card from lying about itself.
+        ///
+        /// Numbers that depend on who is involved are asked for against the
+        /// player and the default target, so a weakened attack reads as what it
+        /// would actually deal if played right now.
         /// </summary>
-        private static string FormatDescription(string template, IReadOnlyList<ICardEffect> effects)
+        private string FormatDescription(string template, IReadOnlyList<ICardEffect> effects)
         {
             if (string.IsNullOrEmpty(template))
                 return string.Empty;
 
+            PlayerState source = _flow.Run.Player;
+            Combatant target = PreviewTarget;
+
             var values = new List<object>();
             foreach (ICardEffect effect in effects)
             {
+                if (effect is IPreviewableEffect previewable)
+                {
+                    values.Add(previewable.Preview(source, target));
+                    continue;
+                }
+
                 if (effect is IDescribableEffect describable)
                     values.Add(describable.DisplayValue);
             }

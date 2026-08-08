@@ -262,6 +262,22 @@ namespace STSlike.Presentation.UI
     }
 
     /// <summary>
+    /// One condition on a figure, ready to draw: an id to pick an icon by and
+    /// the number of turns left.
+    /// </summary>
+    public readonly struct StatusView
+    {
+        public readonly string Id;
+        public readonly int Stacks;
+
+        public StatusView(string id, int stacks)
+        {
+            Id = id;
+            Stacks = stacks;
+        }
+    }
+
+    /// <summary>
     /// One figure as its own small panel: what a widget floating over its head
     /// needs to draw.
     ///
@@ -292,10 +308,18 @@ namespace STSlike.Presentation.UI
         public string IntentText =>
             IntentHits > 1 ? $"{IntentAmount} x{IntentHits}" : IntentAmount.ToString();
 
+        /// <summary>
+        /// What this figure is currently suffering, in the order it was applied.
+        /// Never null — an empty list means a clean figure.
+        /// </summary>
+        public readonly IReadOnlyList<StatusView> Statuses;
+
         public ActorHudView(ActorRef actor, string name, int hp, int maxHp, int block,
             bool isEnemy, IntentType intent = IntentType.Unknown,
-            int intentAmount = 0, int intentHits = 1)
+            int intentAmount = 0, int intentHits = 1,
+            IReadOnlyList<StatusView> statuses = null)
         {
+            Statuses = statuses ?? Array.Empty<StatusView>();
             Actor = actor;
             Name = name;
             Hp = hp;

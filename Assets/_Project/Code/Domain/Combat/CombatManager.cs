@@ -55,6 +55,14 @@ namespace STSlike.Domain.Combat
                 throw new ArgumentNullException(nameof(startingDeck));
 
             _context.Player.Deck.Prepare(startingDeck);
+
+            // Conditions do not survive a fight. The player is the run's own
+            // instance, reused from room to room, so leaving this out would
+            // carry a Weak from one fight into the next.
+            _context.Player.Statuses.Clear();
+            foreach (EnemyState enemy in _context.Enemies)
+                enemy.Statuses.Clear();
+
             _bus.Publish(new CombatStartedEvent());
             BeginPlayerTurn();
         }
@@ -189,6 +197,12 @@ namespace STSlike.Domain.Combat
 
             _bus.Publish(new PlayerTurnEndedEvent());
             _context.Player.Deck.DiscardHand();
+
+            // A condition runs down at the end of its owner's turn. So Weak cast
+            // on the player lasts through the enemy's reply, which is the turn
+            // it was meant to blunt.
+            Expire(_context.Player);
+
             RunEnemyTurn();
 
             if (_context.IsOver)
@@ -234,11 +248,30 @@ namespace STSlike.Domain.Combat
 
             foreach (EnemyState enemy in _context.Enemies)
             {
-                if (!enemy.IsDead)
-                    enemy.PlanNextTurn(_context.TurnNumber + 1);
+                if (enemy.IsDead)
+                    continue;
+
+                // Same rule as the player: their turn is over, so their
+                // conditions lose a step. Vulnerable cast on this enemy
+                // therefore covers the player's next turn too.
+                Expire(enemy);
+                enemy.PlanNextTurn(_context.TurnNumber + 1);
             }
 
             CheckCombatEnd();
+        }
+
+        /// <summary>
+        /// Runs a figure's conditions down and says so, so the panel above it
+        /// stops showing something that has worn off.
+        /// </summary>
+        private void Expire(Combatant combatant)
+        {
+            if (combatant.Statuses.Active.Count == 0)
+                return;
+
+            combatant.Statuses.TickDown();
+            _bus.Publish(new StatusChangedEvent(combatant, null));
         }
 
         private void Act(EnemyState enemy)

@@ -88,6 +88,23 @@ namespace STSlike.Domain.Combat
     }
 
     /// <summary>
+    /// A condition was applied to a combatant, or ran out. Carries the id
+    /// rather than the status so a view can look up an icon without the rules
+    /// knowing what an icon is.
+    /// </summary>
+    public readonly struct StatusChangedEvent
+    {
+        public readonly Combatant Actor;
+        public readonly string StatusId;
+
+        public StatusChangedEvent(Combatant actor, string statusId)
+        {
+            Actor = actor;
+            StatusId = statusId;
+        }
+    }
+
+    /// <summary>
     /// Energy was granted by an effect, not by the turn's refill. Separate from
     /// the refill so a view can react to the gain without flashing at the start
     /// of every turn.
