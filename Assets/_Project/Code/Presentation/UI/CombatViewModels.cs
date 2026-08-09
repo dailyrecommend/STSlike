@@ -73,9 +73,21 @@ namespace STSlike.Presentation.UI
         /// <summary>0..1, ready for a bar fill.</summary>
         public float HpFraction => MaxHp <= 0 ? 0f : (float)Hp / MaxHp;
 
+        /// <summary>
+        /// Rounds in the cylinder. Max of zero means this character carries no
+        /// such weapon, and the widget should stay hidden.
+        /// </summary>
+        public readonly int Ammo;
+        public readonly int MaxAmmo;
+
+        public bool HasWeapon => MaxAmmo > 0;
+
         public PlayerView(string name, int hp, int maxHp, int block, int energy, int maxEnergy,
-            int drawCount, int discardCount, int handCount)
+            int drawCount, int discardCount, int handCount,
+            int ammo = 0, int maxAmmo = 0)
         {
+            Ammo = ammo;
+            MaxAmmo = maxAmmo;
             Name = name;
             Hp = hp;
             MaxHp = maxHp;

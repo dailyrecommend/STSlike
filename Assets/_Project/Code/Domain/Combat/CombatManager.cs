@@ -63,6 +63,11 @@ namespace STSlike.Domain.Combat
             foreach (EnemyState enemy in _context.Enemies)
                 enemy.Statuses.Clear();
 
+            // Every fight starts with a full cylinder. Carrying an empty gun in
+            // from the last room would make the reload card mandatory rather
+            // than a decision.
+            _context.Player.ReloadFully();
+
             _bus.Publish(new CombatStartedEvent());
             BeginPlayerTurn();
         }
@@ -72,19 +77,34 @@ namespace STSlike.Domain.Combat
         /// state) if it is not the player's turn, the card is not in hand, or
         /// the player cannot afford it.
         /// </summary>
+        /// <summary>
+        /// Whether the rules allow playing this card right now.
+        ///
+        /// The one place that answers the question, so the face the player sees
+        /// and the check that runs on click can never disagree. Whether the
+        /// *screen* is ready — an animation still catching up — is a separate
+        /// matter and not the rules' business.
+        /// </summary>
+        public bool CanPlay(Card card)
+        {
+            if (card == null || _context.Phase != CombatPhase.PlayerTurn)
+                return false;
+
+            PlayerState player = _context.Player;
+
+            return player.Deck.Hand.Cards.Contains(card)
+                   && player.CanAfford(card.Cost)
+                   && player.Statuses.AllowsPlaying(card.Definition);
+        }
+
         public bool PlayCard(Card card, Combatant target = null)
         {
             if (card == null)
                 throw new ArgumentNullException(nameof(card));
-            if (_context.Phase != CombatPhase.PlayerTurn)
+            if (!CanPlay(card))
                 return false;
 
             PlayerState player = _context.Player;
-            if (!player.Deck.Hand.Cards.Contains(card))
-                return false;
-            if (!player.CanAfford(card.Cost))
-                return false;
-
             player.SpendEnergy(card.Cost);
             _bus.Publish(new CardPlayedEvent(card));
 
@@ -203,6 +223,10 @@ namespace STSlike.Domain.Combat
             // it was meant to blunt.
             Expire(_context.Player);
 
+            // Marks built up during the turn go now, wherever they sit — usually
+            // on an enemy the player was pouring fire into.
+            WipeTurnMarks();
+
             RunEnemyTurn();
 
             if (_context.IsOver)
@@ -270,8 +294,25 @@ namespace STSlike.Domain.Combat
             if (combatant.Statuses.Active.Count == 0)
                 return;
 
-            combatant.Statuses.TickDown();
+            combatant.Statuses.EndOwnerTurn();
             _bus.Publish(new StatusChangedEvent(combatant, null));
+        }
+
+        /// <summary>
+        /// Clears every mark tied to the player's turn, on everyone. Announced
+        /// only where something was actually removed, so a room of untouched
+        /// enemies does not generate a burst of pointless redraws.
+        /// </summary>
+        private void WipeTurnMarks()
+        {
+            if (_context.Player.Statuses.EndPlayerTurn())
+                _bus.Publish(new StatusChangedEvent(_context.Player, null));
+
+            foreach (EnemyState enemy in _context.Enemies)
+            {
+                if (enemy.Statuses.EndPlayerTurn())
+                    _bus.Publish(new StatusChangedEvent(enemy, null));
+            }
         }
 
         private void Act(EnemyState enemy)

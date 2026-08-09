@@ -16,15 +16,17 @@ namespace STSlike.Domain.Combat
     /// </summary>
     public static class DamageCalculation
     {
-        public static int Resolve(Combatant source, Combatant target, int amount)
+        public static int Resolve(Combatant source, Combatant target, int amount,
+            string tag = DamageTags.None)
         {
             if (amount <= 0)
                 return amount;
 
             // The attacker's conditions shape what is thrown, the defender's
-            // what arrives, and each step rounds down on its own.
-            int thrown = source != null ? source.Statuses.ModifyOutgoingDamage(amount) : amount;
-            return target != null ? target.Statuses.ModifyIncomingDamage(thrown) : thrown;
+            // what arrives, and each step rounds down on its own. The tag rides
+            // along so a condition can decline to touch this kind of blow.
+            int thrown = source != null ? source.Statuses.ModifyOutgoingDamage(amount, tag) : amount;
+            return target != null ? target.Statuses.ModifyIncomingDamage(thrown, tag) : thrown;
         }
     }
 }

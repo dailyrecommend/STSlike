@@ -88,6 +88,39 @@ namespace STSlike.Domain.Combat
     }
 
     /// <summary>
+    /// Rounds were spent or put back. Carries what is now in the cylinder rather
+    /// than the change, since that is what a view has to draw.
+    /// </summary>
+    public readonly struct AmmoChangedEvent
+    {
+        public readonly Combatant Actor;
+        public readonly int Ammo;
+
+        public AmmoChangedEvent(Combatant actor, int ammo)
+        {
+            Actor = actor;
+            Ammo = ammo;
+        }
+    }
+
+    /// <summary>
+    /// The hammer fell on an empty chamber.
+    ///
+    /// Worth announcing rather than passing over in silence: running dry is the
+    /// character's signature failure, and the player needs to hear the click to
+    /// understand why the card did nothing.
+    /// </summary>
+    public readonly struct ShotFizzledEvent
+    {
+        public readonly Combatant Actor;
+
+        public ShotFizzledEvent(Combatant actor)
+        {
+            Actor = actor;
+        }
+    }
+
+    /// <summary>
     /// A condition was applied to a combatant, or ran out. Carries the id
     /// rather than the status so a view can look up an icon without the rules
     /// knowing what an icon is.

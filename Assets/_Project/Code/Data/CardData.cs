@@ -32,6 +32,11 @@ namespace STSlike.Data
                  "they belong in the opening deck, not in the prize pool.")]
         [SerializeField] private bool collectable = true;
 
+        [Tooltip("Keywords this card carries — \"Shot\" for anything fired from " +
+                 "the weapon. Case matters. Stances and conditions read these to " +
+                 "decide what may be played.")]
+        [SerializeField] private List<string> tags = new List<string>();
+
         [SerializeReference, SerializeReferenceDropdown]
         private List<ICardEffect> effects = new List<ICardEffect>();
 
@@ -65,6 +70,7 @@ namespace STSlike.Data
         public CardTarget Target => target;
         public CardRarity Rarity => rarity;
         public bool Collectable => collectable;
+        public IReadOnlyList<string> Tags => tags;
         public IReadOnlyList<ICardEffect> Effects => effects;
 
         /// <summary>Falls back to the id so an unfinished card is still readable.</summary>

@@ -98,6 +98,8 @@ namespace STSlike.Presentation.UI
             _bus.Subscribe<EnergyGainedEvent>(OnAnyChange);
             _bus.Subscribe<CardsDrawnEvent>(OnAnyChange);
             _bus.Subscribe<StatusChangedEvent>(OnAnyChange);
+            _bus.Subscribe<AmmoChangedEvent>(OnAnyChange);
+            _bus.Subscribe<ShotFizzledEvent>(OnAnyChange);
             _bus.Subscribe<PlayerTurnEndedEvent>(OnPlayerTurnEnded);
             _bus.Subscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Subscribe<MapChoiceOfferedEvent>(OnAnyChange);
@@ -123,6 +125,8 @@ namespace STSlike.Presentation.UI
             _bus.Unsubscribe<EnergyGainedEvent>(OnAnyChange);
             _bus.Unsubscribe<CardsDrawnEvent>(OnAnyChange);
             _bus.Unsubscribe<StatusChangedEvent>(OnAnyChange);
+            _bus.Unsubscribe<AmmoChangedEvent>(OnAnyChange);
+            _bus.Unsubscribe<ShotFizzledEvent>(OnAnyChange);
             _bus.Unsubscribe<PlayerTurnEndedEvent>(OnPlayerTurnEnded);
             _bus.Unsubscribe<CombatEndedEvent>(OnAnyChange);
             _bus.Unsubscribe<MapChoiceOfferedEvent>(OnAnyChange);
@@ -239,7 +243,8 @@ namespace STSlike.Presentation.UI
                 Deck deck = player.Deck;
                 return new PlayerView(player.Name, player.CurrentHp, player.MaxHp,
                     player.Block, player.Energy, player.MaxEnergy,
-                    deck.DrawPile.Count, deck.DiscardPile.Count, deck.Hand.Count);
+                    deck.DrawPile.Count, deck.DiscardPile.Count, deck.Hand.Count,
+                    player.Ammo, player.MaxAmmo);
             }
         }
 
@@ -759,16 +764,16 @@ namespace STSlike.Presentation.UI
             if (manager == null)
                 return;
 
-            // Playable means "clicking this would do something", which is not
-            // only about energy: the whole hand dims while the enemy is taking
-            // its turn. Cards the player is chaining themselves stay lit.
+            // Two separate questions. The rules decide whether a card may be
+            // played at all — energy, and anything a stance or condition has to
+            // say about it. Whether the screen has caught up is ours, and dims
+            // the whole hand during the enemy's turn.
             bool canAct = CanAct;
-            PlayerState player = manager.Context.Player;
 
             for (int i = 0; i < _handCards.Count; i++)
             {
                 Card card = _handCards[i];
-                _hand.Add(BuildCardView(card, i, canAct && player.CanAfford(card.Cost)));
+                _hand.Add(BuildCardView(card, i, canAct && manager.CanPlay(card)));
             }
         }
 

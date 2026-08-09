@@ -1,3 +1,5 @@
+using STSlike.Domain.Cards;
+
 namespace STSlike.Domain.Statuses
 {
     /// <summary>
@@ -15,9 +17,18 @@ namespace STSlike.Domain.Statuses
 
         public string Id => StatusId;
 
-        public int ModifyOutgoingDamage(int amount, int stacks) => amount;
+        public StatusDuration Duration => StatusDuration.OwnerTurns;
 
-        public int ModifyIncomingDamage(int amount, int stacks)
+        public int ModifyOutgoingDamage(int amount, int stacks, string tag) => amount;
+
+        public bool AllowsPlaying(ICardDefinition card, int stacks) => true;
+
+        /// <summary>
+        /// Every kind of blow, gunfire included. This is a hole in the defender's
+        /// guard rather than a fault in the attacker, so nothing about how the
+        /// damage was produced makes it land any softer.
+        /// </summary>
+        public int ModifyIncomingDamage(int amount, int stacks, string tag)
         {
             if (stacks <= 0 || amount <= 0)
                 return amount;

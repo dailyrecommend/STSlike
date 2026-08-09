@@ -18,6 +18,16 @@ namespace STSlike.Domain.Characters
         int MaxEnergy { get; }
         int StartingCredits { get; }
 
+        /// <summary>
+        /// Rounds this character's weapon holds. Zero for one who carries none,
+        /// which is what makes the whole cylinder a character trait rather than
+        /// something the rules assume everybody has.
+        /// </summary>
+        int MaxAmmo { get; }
+
+        /// <summary>Base damage of one round, before anything modifies it.</summary>
+        int ShotDamage { get; }
+
         /// <summary>Expanded copies: three Strikes appear three times.</summary>
         IReadOnlyList<ICardDefinition> StartingDeck { get; }
     }

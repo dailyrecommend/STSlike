@@ -1,3 +1,6 @@
+using STSlike.Domain.Cards;
+using STSlike.Domain.Combat;
+
 namespace STSlike.Domain.Statuses
 {
     /// <summary>
@@ -15,9 +18,16 @@ namespace STSlike.Domain.Statuses
 
         public string Id => StatusId;
 
-        public int ModifyOutgoingDamage(int amount, int stacks)
+        public StatusDuration Duration => StatusDuration.OwnerTurns;
+
+        public int ModifyOutgoingDamage(int amount, int stacks, string tag)
         {
             if (stacks <= 0 || amount <= 0)
+                return amount;
+
+            // A weapon's output is the weapon's, not its owner's. Weakening the
+            // hand on the grip does nothing to what the barrel puts out.
+            if (tag == DamageTags.Shot)
                 return amount;
 
             // Rounded down, so a 1-damage jab weakened still lands for nothing
@@ -25,7 +35,10 @@ namespace STSlike.Domain.Statuses
             return amount * 3 / 4;
         }
 
-        public int ModifyIncomingDamage(int amount, int stacks) => amount;
+        public int ModifyIncomingDamage(int amount, int stacks, string tag) => amount;
+
+        /// <summary>Weakness blunts what you do, it does not stop you doing it.</summary>
+        public bool AllowsPlaying(ICardDefinition card, int stacks) => true;
 
         private WeakStatus() { }
     }

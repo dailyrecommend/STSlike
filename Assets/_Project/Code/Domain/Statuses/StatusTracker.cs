@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using STSlike.Domain.Cards;
 
 namespace STSlike.Domain.Statuses
 {
@@ -68,37 +69,81 @@ namespace STSlike.Domain.Statuses
 
         public bool Has(string id) => StacksOf(id) > 0;
 
-        public int ModifyOutgoingDamage(int amount)
+        public int ModifyOutgoingDamage(int amount, string tag)
         {
             foreach (ActiveStatus entry in _active)
-                amount = entry.Status.ModifyOutgoingDamage(amount, entry.Stacks);
+                amount = entry.Status.ModifyOutgoingDamage(amount, entry.Stacks, tag);
 
             return amount;
         }
 
-        public int ModifyIncomingDamage(int amount)
+        public int ModifyIncomingDamage(int amount, string tag)
         {
             foreach (ActiveStatus entry in _active)
-                amount = entry.Status.ModifyIncomingDamage(amount, entry.Stacks);
+                amount = entry.Status.ModifyIncomingDamage(amount, entry.Stacks, tag);
 
             return amount;
         }
 
         /// <summary>
-        /// Runs the clock down by one, at the end of this figure's own turn.
-        /// Conditions that reach zero are dropped rather than left at zero, so
-        /// the panel above the figure empties on its own.
+        /// Whether every active condition permits playing that card. One veto is
+        /// enough, so a stance can narrow the hand without anything else knowing
+        /// stances exist.
         /// </summary>
-        public void TickDown()
+        public bool AllowsPlaying(ICardDefinition card)
+        {
+            foreach (ActiveStatus entry in _active)
+            {
+                if (!entry.Status.AllowsPlaying(card, entry.Stacks))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// This figure's own turn has ended, so its turn-counted conditions lose
+        /// a step. Ones that reach zero are dropped rather than left sitting at
+        /// zero, so the panel above the figure empties on its own.
+        ///
+        /// Marks tied to the player's turn and anything persistent are left
+        /// alone — their clocks are not this one.
+        /// </summary>
+        public void EndOwnerTurn()
         {
             for (int i = _active.Count - 1; i >= 0; i--)
             {
+                if (_active[i].Status.Duration != StatusDuration.OwnerTurns)
+                    continue;
+
                 int left = _active[i].Stacks - 1;
                 if (left > 0)
                     _active[i] = new ActiveStatus(_active[i].Status, left);
                 else
                     _active.RemoveAt(i);
             }
+        }
+
+        /// <summary>
+        /// The player's turn has ended. Marks that only exist to be exploited
+        /// within it are wiped outright — they are not counted down, because a
+        /// half-built chain is worth nothing on the next turn anyway.
+        ///
+        /// Called on every figure, since these marks usually sit on the enemy.
+        /// </summary>
+        public bool EndPlayerTurn()
+        {
+            bool removed = false;
+
+            for (int i = _active.Count - 1; i >= 0; i--)
+            {
+                if (_active[i].Status.Duration != StatusDuration.PlayerTurn)
+                    continue;
+
+                _active.RemoveAt(i);
+                removed = true;
+            }
+
+            return removed;
         }
 
         /// <summary>Conditions do not survive a fight.</summary>

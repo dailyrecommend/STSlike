@@ -96,7 +96,8 @@ namespace STSlike.Presentation
                     });
 
                     var deck = new Deck(rng);
-                    var player = new PlayerState(ResolvedName, ResolvedMaxHp, ResolvedMaxEnergy, deck);
+                    var player = new PlayerState(ResolvedName, ResolvedMaxHp, ResolvedMaxEnergy,
+                        deck, ResolvedMaxAmmo, ResolvedShotDamage);
                     return new RunContext(map, player, BuildStarterDeck(),
                         seed, ResolvedStartingCredits, ResolvedCharacterId);
                 },
@@ -182,6 +183,7 @@ namespace STSlike.Presentation
             RegisterIfPresent<HandCardLayout>(builder);
             RegisterIfPresent<CardListPopupBinder>(builder);
             RegisterIfPresent<MapViewBinder>(builder);
+            RegisterIfPresent<CylinderBinder>(builder);
 
             if (FindFirstObjectByType<CombatStageBinder>(FindObjectsInactive.Include) != null)
             {
@@ -259,6 +261,8 @@ namespace STSlike.Presentation
         private int ResolvedMaxHp => _character != null ? _character.MaxHp : 70;
         private int ResolvedMaxEnergy => _character != null ? _character.MaxEnergy : 3;
         private int ResolvedStartingCredits => _character != null ? _character.StartingCredits : 0;
+        private int ResolvedMaxAmmo => _character != null ? _character.MaxAmmo : 0;
+        private int ResolvedShotDamage => _character != null ? _character.ShotDamage : 0;
 
         private string ResolvedName =>
             _character is CharacterData data ? data.DisplayName : ResolvedCharacterId;

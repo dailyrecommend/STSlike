@@ -17,12 +17,15 @@ namespace STSlike.Domain.Cards
         public CardTarget Target { get; }
         public CardRarity Rarity { get; }
         public bool Collectable { get; }
+        public IReadOnlyList<string> Tags { get; }
         public IReadOnlyList<ICardEffect> Effects { get; }
 
         public CardDefinition(string id, int cost, IReadOnlyList<ICardEffect> effects,
             CardType type = CardType.Attack, CardRarity rarity = CardRarity.Common,
-            CardTarget target = CardTarget.SingleEnemy, bool collectable = true)
+            CardTarget target = CardTarget.SingleEnemy, bool collectable = true,
+            IReadOnlyList<string> tags = null)
         {
+            Tags = tags ?? Array.Empty<string>();
             Type = type;
             Target = target;
             Rarity = rarity;

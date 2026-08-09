@@ -31,6 +31,13 @@ namespace STSlike.Domain.Cards
         /// added — and that a mod could not contribute to.
         /// </summary>
         bool Collectable { get; }
+
+        /// <summary>
+        /// Keywords this card carries — see <see cref="CardTags"/>. Never null.
+        /// What a card *is*, as opposed to what it does; conditions and stances
+        /// ask about these when deciding what may be played.
+        /// </summary>
+        IReadOnlyList<string> Tags { get; }
         IReadOnlyList<ICardEffect> Effects { get; }
     }
 }

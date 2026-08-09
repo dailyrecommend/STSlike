@@ -30,7 +30,7 @@ namespace STSlike.Tests.EditMode
             Combatant attacker = Fighter();
             attacker.Statuses.Apply(WeakStatus.Instance, 2);
 
-            Assert.AreEqual(9, attacker.Statuses.ModifyOutgoingDamage(12));
+            Assert.AreEqual(9, attacker.Statuses.ModifyOutgoingDamage(12, DamageTags.None));
         }
 
         [Test]
@@ -39,7 +39,7 @@ namespace STSlike.Tests.EditMode
             Combatant victim = Fighter();
             victim.Statuses.Apply(VulnerableStatus.Instance, 2);
 
-            Assert.AreEqual(15, victim.Statuses.ModifyIncomingDamage(10));
+            Assert.AreEqual(15, victim.Statuses.ModifyIncomingDamage(10, DamageTags.None));
         }
 
         [Test]
@@ -49,9 +49,9 @@ namespace STSlike.Tests.EditMode
             fighter.Statuses.Apply(WeakStatus.Instance, 2);
             fighter.Statuses.Apply(VulnerableStatus.Instance, 2);
 
-            Assert.AreEqual(15, fighter.Statuses.ModifyIncomingDamage(10),
+            Assert.AreEqual(15, fighter.Statuses.ModifyIncomingDamage(10, DamageTags.None),
                 "only vulnerable should raise what arrives");
-            Assert.AreEqual(9, fighter.Statuses.ModifyOutgoingDamage(12),
+            Assert.AreEqual(9, fighter.Statuses.ModifyOutgoingDamage(12, DamageTags.None),
                 "only weak should cut what is thrown");
         }
 
@@ -60,12 +60,50 @@ namespace STSlike.Tests.EditMode
         {
             Combatant attacker = Fighter();
             attacker.Statuses.Apply(WeakStatus.Instance, 1);
-            int once = attacker.Statuses.ModifyOutgoingDamage(12);
+            int once = attacker.Statuses.ModifyOutgoingDamage(12, DamageTags.None);
 
             attacker.Statuses.Apply(WeakStatus.Instance, 5);
 
-            Assert.AreEqual(once, attacker.Statuses.ModifyOutgoingDamage(12));
+            Assert.AreEqual(once, attacker.Statuses.ModifyOutgoingDamage(12, DamageTags.None));
             Assert.AreEqual(6, attacker.Statuses.StacksOf(WeakStatus.StatusId));
+        }
+
+        // ---- tagged damage ----
+
+        [Test]
+        public void WeakLeavesGunfireAlone()
+        {
+            Combatant gunhand = Fighter();
+            gunhand.Statuses.Apply(WeakStatus.Instance, 2);
+
+            // The revolver's output is the revolver's. This is the whole reason
+            // damage carries a tag.
+            Assert.AreEqual(6, gunhand.Statuses.ModifyOutgoingDamage(6, DamageTags.Shot));
+            Assert.AreEqual(4, gunhand.Statuses.ModifyOutgoingDamage(6, DamageTags.None),
+                "an ordinary swing from the same weakened hand still suffers");
+        }
+
+        [Test]
+        public void VulnerableStillOpensYouUpToGunfire()
+        {
+            Combatant victim = Fighter();
+            victim.Statuses.Apply(VulnerableStatus.Instance, 2);
+
+            // A hole in the guard does not care how the damage was produced.
+            Assert.AreEqual(9, victim.Statuses.ModifyIncomingDamage(6, DamageTags.Shot));
+        }
+
+        [Test]
+        public void AWeakenedGunhandFiringAtAnOpenTargetStillGetsTheBonus()
+        {
+            Combatant gunhand = Fighter();
+            Combatant victim = Fighter();
+            gunhand.Statuses.Apply(WeakStatus.Instance, 2);
+            victim.Statuses.Apply(VulnerableStatus.Instance, 2);
+
+            // 6 leaves the barrel untouched, then 9 arrives.
+            Assert.AreEqual(9,
+                DamageCalculation.Resolve(gunhand, victim, 6, DamageTags.Shot));
         }
 
         // ---- through a real attack ----
@@ -125,10 +163,10 @@ namespace STSlike.Tests.EditMode
             Combatant fighter = Fighter();
             fighter.Statuses.Apply(WeakStatus.Instance, 2);
 
-            fighter.Statuses.TickDown();
+            fighter.Statuses.EndOwnerTurn();
             Assert.AreEqual(1, fighter.Statuses.StacksOf(WeakStatus.StatusId));
 
-            fighter.Statuses.TickDown();
+            fighter.Statuses.EndOwnerTurn();
             Assert.AreEqual(0, fighter.Statuses.StacksOf(WeakStatus.StatusId));
             Assert.AreEqual(0, fighter.Statuses.Active.Count,
                 "an expired condition should leave the panel, not sit there at zero");

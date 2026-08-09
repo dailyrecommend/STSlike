@@ -45,6 +45,14 @@ namespace STSlike.Presentation.UI
         [SerializeField] private TMP_Text energyText;
         [SerializeField] private Image energyIcon;
 
+        [Header("Cylinder (hidden for a character with no weapon)")]
+        [Tooltip("Rounds left, as \"4/6\".")]
+        [SerializeField] private TMP_Text ammoText;
+
+        [Tooltip("Switched off entirely when the character carries no weapon, so " +
+                 "one HUD serves every character.")]
+        [SerializeField] private GameObject ammoRoot;
+
         // Enemy name, health, block and intent are not here: they float over the
         // models instead. A fight can hold several opponents, and a fixed panel
         // can only ever describe one of them, which is worse than misleading —
@@ -131,6 +139,10 @@ namespace STSlike.Presentation.UI
             CombatDisplayState.Vitals shown = Shown(player);
             UiSlot.SetText(playerHpText, $"{shown.Hp}/{player.MaxHp}");
             UiSlot.SetText(energyText, $"{player.Energy}/{player.MaxEnergy}");
+
+            UiSlot.SetActive(ammoRoot, player.HasWeapon);
+            if (player.HasWeapon)
+                UiSlot.SetText(ammoText, $"{player.Ammo}/{player.MaxAmmo}");
             SetBlock(playerBlockRoot, playerBlockText, shown.Block);
             UiSlot.SetText(drawCountText, player.DrawCount.ToString());
             UiSlot.SetText(discardCountText, player.DiscardCount.ToString());

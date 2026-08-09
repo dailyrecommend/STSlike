@@ -20,16 +20,16 @@ MonoBehaviour:
   maxHp: 70
   maxEnergy: 3
   startingCredits: 100
+  maxAmmo: 6
+  shotDamage: 6
   startingDeck:
   - card: {fileID: 11400000, guid: 3356d789a553b8349ab9a5944cf1231e, type: 2}
     count: 3
   - card: {fileID: 11400000, guid: 7350e71ec3f90d340913c0930e970fe3, type: 2}
     count: 3
-  - card: {fileID: 11400000, guid: 72e0c42912359c54bb080c535140ffc6, type: 2}
-    count: 1
-  - card: {fileID: 11400000, guid: 48d2758dcf0f5c947b047c140dc21ed2, type: 2}
-    count: 1
   - card: {fileID: 11400000, guid: caafff475b4f1714d84a69ca2ffbe9e7, type: 2}
     count: 1
-  - card: {fileID: 11400000, guid: f89276688a9184a46b4b518d724a2922, type: 2}
+  - card: {fileID: 11400000, guid: 228841cf74a98074b90421f0d45b3cac, type: 2}
+    count: 2
+  - card: {fileID: 11400000, guid: bad5e9c47fddca84fb4640edb1e0d86b, type: 2}
     count: 1

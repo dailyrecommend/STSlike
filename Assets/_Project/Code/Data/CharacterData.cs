@@ -44,6 +44,15 @@ namespace STSlike.Data
         [SerializeField, Min(0)] private int maxEnergy = 3;
         [SerializeField, Min(0)] private int startingCredits = 100;
 
+        [Header("Weapon (0 rounds = carries no such weapon)")]
+        [Tooltip("Rounds the cylinder holds. Refilled when a fight begins, and " +
+                 "never by the turn — reloading is a card.")]
+        [SerializeField, Min(0)] private int maxAmmo = 6;
+
+        [Tooltip("Base damage of one round. Fixed on purpose: the weapon's " +
+                 "output does not care how its owner is feeling.")]
+        [SerializeField, Min(0)] private int shotDamage = 6;
+
         [Header("Starting Deck")]
         [SerializeField] private List<DeckEntry> startingDeck = new List<DeckEntry>();
 
@@ -51,6 +60,8 @@ namespace STSlike.Data
         public int MaxHp => maxHp;
         public int MaxEnergy => maxEnergy;
         public int StartingCredits => startingCredits;
+        public int MaxAmmo => maxAmmo;
+        public int ShotDamage => shotDamage;
 
         /// <summary>Falls back to the id so an unnamed character still reads.</summary>
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? id : displayName;

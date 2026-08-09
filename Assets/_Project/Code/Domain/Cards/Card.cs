@@ -21,5 +21,19 @@ namespace STSlike.Domain.Cards
         {
             Definition = definition ?? throw new ArgumentNullException(nameof(definition));
         }
+
+        /// <summary>Whether this card carries a keyword. See <see cref="CardTags"/>.</summary>
+        public bool HasTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag))
+                return false;
+
+            foreach (string carried in Definition.Tags)
+            {
+                if (carried == tag)
+                    return true;
+            }
+            return false;
+        }
     }
 }

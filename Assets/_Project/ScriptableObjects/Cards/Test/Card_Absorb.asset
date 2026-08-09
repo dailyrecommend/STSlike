@@ -18,6 +18,7 @@ MonoBehaviour:
   target: 0
   rarity: 1
   collectable: 1
+  tags: []
   effects:
   - rid: 653525716119060543
   - rid: 653525716119060544
