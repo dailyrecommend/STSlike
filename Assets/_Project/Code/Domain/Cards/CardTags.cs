@@ -17,5 +17,11 @@ namespace STSlike.Domain.Cards
         /// and the ones that spend a round.
         /// </summary>
         public const string Shot = "Shot";
+
+        /// <summary>
+        /// Changes how the figure is standing. A stance that forbids everything
+        /// else still has to let go of itself, so these stay playable inside one.
+        /// </summary>
+        public const string Stance = "Stance";
     }
 }

@@ -84,26 +84,33 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
-        public void VulnerableStillOpensYouUpToGunfire()
+        public void BrokenDoesNotOpenYouUpToGunfireEither()
         {
             Combatant victim = Fighter();
             victim.Statuses.Apply(VulnerableStatus.Instance, 2);
 
-            // A hole in the guard does not care how the damage was produced.
-            Assert.AreEqual(9, victim.Statuses.ModifyIncomingDamage(6, DamageTags.Shot));
+            // A round does what a round does, braced or reeling.
+            Assert.AreEqual(6, victim.Statuses.ModifyIncomingDamage(6, DamageTags.Shot));
+            Assert.AreEqual(9, victim.Statuses.ModifyIncomingDamage(6, DamageTags.None),
+                "an ordinary blow on the same target still lands harder");
         }
 
         [Test]
-        public void AWeakenedGunhandFiringAtAnOpenTargetStillGetsTheBonus()
+        public void OrdinaryConditionsCannotTouchWeaponFireFromEitherSide()
         {
             Combatant gunhand = Fighter();
             Combatant victim = Fighter();
             gunhand.Statuses.Apply(WeakStatus.Instance, 2);
             victim.Statuses.Apply(VulnerableStatus.Instance, 2);
 
-            // 6 leaves the barrel untouched, then 9 arrives.
-            Assert.AreEqual(9,
+            // Weakened shooter, broken target, and the round is still exactly
+            // what the weapon says. That reliability is the character.
+            Assert.AreEqual(6,
                 DamageCalculation.Resolve(gunhand, victim, 6, DamageTags.Shot));
+
+            // The same pair of conditions on an ordinary blow: 12 -> 9 -> 13.
+            Assert.AreEqual(13,
+                DamageCalculation.Resolve(gunhand, victim, 12, DamageTags.None));
         }
 
         // ---- through a real attack ----

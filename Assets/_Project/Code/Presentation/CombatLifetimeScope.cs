@@ -97,7 +97,7 @@ namespace STSlike.Presentation
 
                     var deck = new Deck(rng);
                     var player = new PlayerState(ResolvedName, ResolvedMaxHp, ResolvedMaxEnergy,
-                        deck, ResolvedMaxAmmo, ResolvedShotDamage);
+                        deck, BuildWeapon());
                     return new RunContext(map, player, BuildStarterDeck(),
                         seed, ResolvedStartingCredits, ResolvedCharacterId);
                 },
@@ -196,6 +196,7 @@ namespace STSlike.Presentation
                 // Only wired up alongside the stage — neither has anything to
                 // point at without models.
                 RegisterIfPresent<ActorOverlayBinder>(builder);
+                RegisterIfPresent<DamageNumberBinder>(builder);
                 RegisterIfPresent<ActorTargetingInput>(builder);
             }
         }
@@ -261,8 +262,17 @@ namespace STSlike.Presentation
         private int ResolvedMaxHp => _character != null ? _character.MaxHp : 70;
         private int ResolvedMaxEnergy => _character != null ? _character.MaxEnergy : 3;
         private int ResolvedStartingCredits => _character != null ? _character.StartingCredits : 0;
-        private int ResolvedMaxAmmo => _character != null ? _character.MaxAmmo : 0;
-        private int ResolvedShotDamage => _character != null ? _character.ShotDamage : 0;
+        /// <summary>
+        /// The weapon this character carries, or null when they carry none —
+        /// which is what a capacity of zero on the definition means.
+        /// </summary>
+        private WeaponState BuildWeapon()
+        {
+            if (_character == null || _character.MaxAmmo <= 0)
+                return null;
+
+            return new WeaponState(_character.MaxAmmo, _character.ShotDamage);
+        }
 
         private string ResolvedName =>
             _character is CharacterData data ? data.DisplayName : ResolvedCharacterId;

@@ -17,9 +17,17 @@ namespace STSlike.Domain.Combat
         public const string None = null;
 
         /// <summary>
-        /// Fired from a weapon rather than swung by the person holding it. The
-        /// gun's output does not care how weakened its owner is, though the
-        /// stance they are firing from very much does.
+        /// Fired from a weapon rather than swung by the person holding it.
+        ///
+        /// **A new condition should leave this alone.** What a round does is
+        /// settled by the weapon: not by how weakened the shooter is, not by how
+        /// badly the target is reeling. That reliability is the character's
+        /// whole strength, and it is only worth anything if it holds against
+        /// everything rather than against most things.
+        ///
+        /// The exceptions are conditions that are *about* the weapon — a firing
+        /// stance, say. Those opt in deliberately, and are the only reason this
+        /// still runs through the condition hooks at all.
         /// </summary>
         public const string Shot = "Shot";
     }

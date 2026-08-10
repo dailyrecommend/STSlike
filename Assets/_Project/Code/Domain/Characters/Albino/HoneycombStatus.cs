@@ -1,6 +1,7 @@
 using STSlike.Domain.Cards;
+using STSlike.Domain.Statuses;
 
-namespace STSlike.Domain.Statuses
+namespace STSlike.Domain.Characters.Albino
 {
     /// <summary>
     /// Honeycomb: a wound that feeds on itself.
@@ -37,6 +38,9 @@ namespace STSlike.Domain.Statuses
         public string Id => StatusId;
 
         public StatusDuration Duration => StatusDuration.PlayerTurn;
+
+        public bool IsStance => false;
+        public bool SurvivesBeingHurt => true;
 
         /// <summary>
         /// How much a round of this size deepens the wound. Half, rounded down,

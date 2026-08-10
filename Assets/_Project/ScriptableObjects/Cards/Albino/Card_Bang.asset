@@ -21,17 +21,17 @@ MonoBehaviour:
   tags:
   - Shot
   effects:
-  - rid: 653525734382108735
+  - rid: 653525739055349824
   displayName: Bang
   description: Shot {0}.
   artwork: {fileID: 21300000, guid: 2642d02759c25bb46b139433975c6e7a, type: 3}
   animationTrigger: Bang
   impactDelay: 0.25
-  hitInterval: 0.15
+  hitInterval: 0.5
   references:
     version: 2
     RefIds:
-    - rid: 653525734382108735
-      type: {class: ShotEffect, ns: STSlike.Domain.Effects, asm: STSlike.Domain}
+    - rid: 653525739055349824
+      type: {class: ShotEffect, ns: STSlike.Domain.Characters.Albino, asm: STSlike.Domain}
       data:
         shots: 1

@@ -51,6 +51,16 @@ namespace STSlike.Presentation.UI
             For(actor).Owed.Enqueue(new Vitals(hp, block));
         }
 
+        /// <summary>
+        /// A blow just became visible: who took it, how much health it cost, and
+        /// how much of it a guard ate.
+        ///
+        /// Raised from the release rather than from the rules, which is the
+        /// whole point — a floating number driven from here cannot drift from
+        /// the bar it belongs to, because they are the same event.
+        /// </summary>
+        public event Action<ActorRef, int, int> Revealed;
+
         /// <summary>Releases the oldest result still owed for this figure.</summary>
         public void Reveal(ActorRef actor)
         {
@@ -61,7 +71,15 @@ namespace STSlike.Presentation.UI
             if (ledger.Owed.Count == 0)
                 return;
 
+            Vitals before = ledger.Shown;
             ledger.Shown = ledger.Owed.Dequeue();
+
+            // Worked out from the two snapshots rather than passed in, so it is
+            // exactly the change the screen is about to make.
+            Revealed?.Invoke(actor,
+                before.Hp - ledger.Shown.Hp,
+                before.Block - ledger.Shown.Block);
+
             Changed?.Invoke();
         }
 

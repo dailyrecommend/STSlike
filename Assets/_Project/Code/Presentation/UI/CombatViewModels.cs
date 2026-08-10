@@ -82,12 +82,19 @@ namespace STSlike.Presentation.UI
 
         public bool HasWeapon => MaxAmmo > 0;
 
+        /// <summary>
+        /// The stance being held, or null. Drives which motions the figure uses,
+        /// so the stage watches this rather than the condition list.
+        /// </summary>
+        public readonly string Stance;
+
         public PlayerView(string name, int hp, int maxHp, int block, int energy, int maxEnergy,
             int drawCount, int discardCount, int handCount,
-            int ammo = 0, int maxAmmo = 0)
+            int ammo = 0, int maxAmmo = 0, string stance = null)
         {
             Ammo = ammo;
             MaxAmmo = maxAmmo;
+            Stance = stance;
             Name = name;
             Hp = hp;
             MaxHp = maxHp;

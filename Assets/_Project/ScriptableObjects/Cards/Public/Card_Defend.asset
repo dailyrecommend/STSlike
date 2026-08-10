@@ -17,12 +17,14 @@ MonoBehaviour:
   type: 1
   target: 3
   rarity: 0
+  collectable: 1
+  tags: []
   effects:
   - rid: 653525691877556288
   displayName: Defend
   description: Gain {0} Block.
   artwork: {fileID: 21300000, guid: 7b512ea280b5c514aa75158dde668c58, type: 3}
-  animationTrigger: Null
+  animationTrigger: Power
   impactDelay: 0.25
   hitInterval: 0.15
   references:

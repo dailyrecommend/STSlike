@@ -1,8 +1,9 @@
 using System;
 using STSlike.Domain.Actors;
+using STSlike.Domain.Effects;
 using STSlike.Domain.Combat;
 
-namespace STSlike.Domain.Effects
+namespace STSlike.Domain.Characters.Albino
 {
     /// <summary>
     /// Puts rounds back in the cylinder.
@@ -28,16 +29,17 @@ namespace STSlike.Domain.Effects
         public void Execute(EffectContext context)
         {
             PlayerState player = context.Player;
-            if (player == null || rounds <= 0)
+            if (player?.Weapon == null || rounds <= 0)
                 return;
 
-            int before = player.Ammo;
-            player.Reload(rounds);
+            WeaponState weapon = player.Weapon;
+            int before = weapon.Ammo;
+            weapon.Reload(rounds);
 
             // Silent when the cylinder was already full: nothing moved, so
             // there is nothing for a view to react to.
-            if (player.Ammo != before)
-                context.Bus?.Publish(new AmmoChangedEvent(player, player.Ammo));
+            if (weapon.Ammo != before)
+                context.Bus?.Publish(new AmmoChangedEvent(player, weapon.Ammo));
         }
     }
 }

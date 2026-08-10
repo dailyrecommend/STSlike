@@ -20,6 +20,9 @@ namespace STSlike.Domain.Statuses
 
         public StatusDuration Duration => StatusDuration.OwnerTurns;
 
+        public bool IsStance => false;
+        public bool SurvivesBeingHurt => true;
+
         public int ModifyOutgoingDamage(int amount, int stacks, string tag)
         {
             if (stacks <= 0 || amount <= 0)

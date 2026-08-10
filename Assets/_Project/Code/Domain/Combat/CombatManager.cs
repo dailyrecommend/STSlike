@@ -63,10 +63,10 @@ namespace STSlike.Domain.Combat
             foreach (EnemyState enemy in _context.Enemies)
                 enemy.Statuses.Clear();
 
-            // Every fight starts with a full cylinder. Carrying an empty gun in
+            // Every fight starts with a full magazine. Carrying an empty gun in
             // from the last room would make the reload card mandatory rather
             // than a decision.
-            _context.Player.ReloadFully();
+            _context.Player.Weapon?.ReloadFully();
 
             _bus.Publish(new CombatStartedEvent());
             BeginPlayerTurn();

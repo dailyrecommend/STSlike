@@ -22,6 +22,20 @@ namespace STSlike.Domain.Statuses
         StatusDuration Duration { get; }
 
         /// <summary>
+        /// A way of standing rather than something done to you. Stances change
+        /// how a figure moves and what it can do, so the view plays them; most
+        /// conditions are not one.
+        /// </summary>
+        bool IsStance { get; }
+
+        /// <summary>
+        /// Whether this holds when its owner is actually hurt. False for a
+        /// posture that concentration is required to keep — taking a blow
+        /// breaks it.
+        /// </summary>
+        bool SurvivesBeingHurt { get; }
+
+        /// <summary>
         /// Damage this combatant is about to deal. The tag says what kind of
         /// blow it is, so a condition can decline to touch some of them — a
         /// weakened gunhand still fires a full-strength round.

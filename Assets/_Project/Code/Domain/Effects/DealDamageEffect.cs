@@ -34,6 +34,11 @@ namespace STSlike.Domain.Effects
             int lost = context.Target.TakeDamage(landing);
             context.Bus?.Publish(
                 new DamageDealtEvent(context.Source, context.Target, landing, lost));
+
+            // A blow that got through breaks anything that took concentration to
+            // hold. Blocked damage does not: the guard held, so the posture did.
+            if (lost > 0 && context.Target.Statuses.DropOnHurt())
+                context.Bus?.Publish(new StatusChangedEvent(context.Target, null));
         }
     }
 }

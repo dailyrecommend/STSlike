@@ -20,17 +20,17 @@ MonoBehaviour:
   collectable: 1
   tags: []
   effects:
-  - rid: 653525734382108736
+  - rid: 653525739055349826
   displayName: Reload
   description: Reload {0} Rounds.
   artwork: {fileID: 21300000, guid: f4491f63438b2a04dac7806203a1dc92, type: 3}
-  animationTrigger: DeFocus
-  impactDelay: 0.25
+  animationTrigger: Reload
+  impactDelay: 0.5
   hitInterval: 0.15
   references:
     version: 2
     RefIds:
-    - rid: 653525734382108736
-      type: {class: ReloadEffect, ns: STSlike.Domain.Effects, asm: STSlike.Domain}
+    - rid: 653525739055349826
+      type: {class: ReloadEffect, ns: STSlike.Domain.Characters.Albino, asm: STSlike.Domain}
       data:
         rounds: 3

@@ -31,7 +31,7 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: metarig|AT_Pose
+      name: TPose
       takeName: metarig|AT_Pose
       internalID: -1731049294332096879
       firstFrame: 0
@@ -60,7 +60,7 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|Attack
+      name: Attack
       takeName: metarig|Attack
       internalID: 1021806162419773930
       firstFrame: 0
@@ -89,7 +89,7 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|Bang
+      name: Shot
       takeName: metarig|Bang
       internalID: 6473311889502151894
       firstFrame: 0
@@ -118,8 +118,8 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|Defend
-      takeName: metarig|Defend
+      name: Hit
+      takeName: metarig|Hit
       internalID: -2695634868234061924
       firstFrame: 0
       lastFrame: 45
@@ -147,11 +147,11 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|FocusBAng
-      takeName: metarig|FocusBAng
+      name: Focus_Bang
+      takeName: metarig|Focus_Bang
       internalID: 1694640113296664349
       firstFrame: 0
-      lastFrame: 30
+      lastFrame: 60
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -176,8 +176,8 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|FocusChagne
-      takeName: metarig|FocusChagne
+      name: DeFocus
+      takeName: metarig|DeFocus
       internalID: 1295893453207829564
       firstFrame: 0
       lastFrame: 45
@@ -205,8 +205,8 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|FocusIdle
-      takeName: metarig|FocusIdle
+      name: Focus_Idle
+      takeName: metarig|Focus_Idle
       internalID: -593658694560671512
       firstFrame: 0
       lastFrame: 120
@@ -234,7 +234,7 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|Idle
+      name: Idle
       takeName: metarig|Idle
       internalID: -5324238279805231817
       firstFrame: 0
@@ -263,11 +263,69 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: metarig|OnFocus
+      name: OnFocus
       takeName: metarig|OnFocus
       internalID: -109816692069315432
       firstFrame: 0
       lastFrame: 45
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: Power
+      takeName: metarig|Power
+      internalID: 502395219300971342
+      firstFrame: 0
+      lastFrame: 55
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: Reload
+      takeName: metarig|Reload
+      internalID: 8564511462165646924
+      firstFrame: 0
+      lastFrame: 65
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

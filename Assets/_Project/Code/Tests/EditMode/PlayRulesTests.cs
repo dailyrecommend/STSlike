@@ -29,9 +29,11 @@ namespace STSlike.Tests.EditMode
 
             public string Id => "test-stance";
 
-            // A stance stays until something turns it off, which is what the
-            // real one will be.
+            // A stance stays until something turns it off, and holding it takes
+            // concentration — the same shape as the real one.
             public StatusDuration Duration => StatusDuration.Persistent;
+            public bool IsStance => true;
+            public bool SurvivesBeingHurt => false;
 
             public int ModifyOutgoingDamage(int amount, int stacks, string tag) => amount;
             public int ModifyIncomingDamage(int amount, int stacks, string tag) => amount;

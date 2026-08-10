@@ -227,6 +227,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Albino
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f4ac2759c5cb1ba47b625414e975996c, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1322121532940520117, guid: f4ac2759c5cb1ba47b625414e975996c, type: 3}
       propertyPath: m_Materials.Array.size
       value: 3
@@ -520,9 +524,16 @@ MonoBehaviour:
   idleFallbackDelay: 1
   motionBlend: 0
   hitTrigger: Hit
+  stanceSeparator: _
+  enterSuffix: Enter
+  exitSuffix: Exit
+  motionTimings:
+  - motion: Focus_Bang
+    impactDelay: 0.05
+    hitInterval: 0.01
   deathTrigger: Die
   aliases: []
-  logMissingMotions: 1
+  logMissingMotions: 0
   uiAnchor: {fileID: 1688391249607779287}
   hideAfterDeath: 1.2
   hideOnDeath: 1

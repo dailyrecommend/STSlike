@@ -42,6 +42,11 @@ namespace STSlike.Presentation.View
                  "be exact — this is how to tell that apart from a real fault.")]
         [SerializeField] private bool logHitTiming;
 
+        [Tooltip("How long to hold on a change of stance before the next thing " +
+                 "in the queue starts, so the transition is seen rather than " +
+                 "cut off by whatever follows it.")]
+        [SerializeField, Min(0f)] private float stanceTime = 0.35f;
+
         private CombatPresenter _presenter;
         private CombatRunner _runner;
         private CharacterPresentation _character;
@@ -66,6 +71,10 @@ namespace STSlike.Presentation.View
         // Only for the timing log.
         private double _lastBlow;
 
+        // The stance already queued, so a redraw does not re-enqueue one that
+        // is merely still playing.
+        private string _queuedStance;
+
         [Inject]
         public void Construct(CombatPresenter presenter, CombatRunner runner,
             CharacterPresentation character, CombatSequencer sequencer,
@@ -85,10 +94,12 @@ namespace STSlike.Presentation.View
             _presenter.EnemyActionStarted += OnEnemyAction;
             _presenter.Hit += OnHit;
             _presenter.Changed += SyncDeaths;
+            _presenter.Changed += SyncStance;
 
             // A killing blow is only fatal once it has been played, so the last
             // release of a flurry is what drops the body.
             _display.Changed += SyncDeaths;
+            _display.Changed += SyncStance;
         }
 
         private void OnDestroy()
@@ -101,9 +112,13 @@ namespace STSlike.Presentation.View
             _presenter.EnemyActionStarted -= OnEnemyAction;
             _presenter.Hit -= OnHit;
             _presenter.Changed -= SyncDeaths;
+            _presenter.Changed -= SyncStance;
 
             if (_display != null)
+            {
                 _display.Changed -= SyncDeaths;
+                _display.Changed -= SyncStance;
+            }
         }
 
         // ---- staging ----
@@ -112,6 +127,10 @@ namespace STSlike.Presentation.View
         {
             // Blows owed by the last fight will never be played now.
             _display.Clear();
+
+            // ResetActor drops the figure's stance, so the record of what was
+            // queued has to be dropped with it or the next one is skipped.
+            _queuedStance = null;
 
             EnsurePlayer();
             SpawnEnemies();
@@ -182,8 +201,18 @@ namespace STSlike.Presentation.View
         {
             ActorView player = _player;
             string motion = card.AnimationTrigger;
+
+            // The card names the pacing it expects, but the clip that actually
+            // plays has the final say — a stance version of a swing can land at
+            // a different moment, and the card has no way to know that.
+            //
+            // Measured against the stance queued rather than the one on screen:
+            // entering a stance and firing in the same breath queues both, and
+            // by the time the shot plays the figure is already standing the new
+            // way.
             float windUp = card.ImpactDelay;
             _hitInterval = card.HitInterval;
+            player?.ApplyTiming(motion, _queuedStance, ref windUp, ref _hitInterval);
 
             _sequencer.Enqueue(async () =>
             {
@@ -204,12 +233,19 @@ namespace STSlike.Presentation.View
             string motion = string.IsNullOrEmpty(action.Motion)
                 ? fallbackEnemyAttackMotion
                 : action.Motion;
+
+            // Same courtesy as a card: the rig may pace this clip differently
+            // from what the routine assumed. No stance — nothing puts an enemy
+            // into one yet, and when something does it will want its own queued
+            // stance rather than the player's.
+            float windUp = action.ImpactDelay;
             _hitInterval = action.HitInterval;
+            actor?.ApplyTiming(motion, null, ref windUp, ref _hitInterval);
 
             _sequencer.Enqueue(async () =>
             {
                 actor?.Play(motion);
-                await Wait(action.ImpactDelay);
+                await Wait(windUp);
                 _beat = Time.unscaledTimeAsDouble;
             });
         }
@@ -291,6 +327,30 @@ namespace STSlike.Presentation.View
         /// from the state rather than from a damage event, so an enemy killed by
         /// any means — poison, a reflected hit — still falls over.
         /// </summary>
+        /// <summary>
+        /// Puts the figure into whatever stance the rules say it is holding.
+        ///
+        /// Queued rather than played at once, so the change of posture takes its
+        /// place in the run of blows instead of jumping ahead of them — a stance
+        /// broken by the third hit of a flurry has to break when that hit lands,
+        /// not when the flurry was decided.
+        /// </summary>
+        private void SyncStance()
+        {
+            string stance = _presenter.Player.Stance;
+            if (stance == _queuedStance)
+                return;
+
+            _queuedStance = stance;
+
+            ActorView player = _player;
+            _sequencer.Enqueue(async () =>
+            {
+                player?.SetStance(stance);
+                await Wait(stanceTime);
+            });
+        }
+
         private void SyncDeaths()
         {
             for (int i = 0; i < _enemies.Count; i++)

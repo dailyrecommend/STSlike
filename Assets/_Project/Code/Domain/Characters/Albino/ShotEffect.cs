@@ -1,9 +1,10 @@
 using System;
 using STSlike.Domain.Actors;
+using STSlike.Domain.Effects;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Statuses;
 
-namespace STSlike.Domain.Effects
+namespace STSlike.Domain.Characters.Albino
 {
     /// <summary>
     /// Fires rounds from the weapon at the target.
@@ -36,8 +37,12 @@ namespace STSlike.Domain.Effects
             PlayerState player = context.Player;
             Combatant target = context.Target;
 
-            if (player == null || target == null || shots <= 0)
+            // No weapon, so nothing to fire. An unarmed character running this
+            // does nothing rather than throwing.
+            if (player?.Weapon == null || target == null || shots <= 0)
                 return;
+
+            WeaponState weapon = player.Weapon;
 
             for (int i = 0; i < shots; i++)
             {
@@ -47,19 +52,20 @@ namespace STSlike.Domain.Effects
                 if (target.IsDead)
                     return;
 
-                if (!player.TrySpendAmmo())
+                if (!weapon.TrySpend())
                 {
                     // Once dry, the rest of the burst is dry too.
                     context.Bus?.Publish(new ShotFizzledEvent(player));
                     return;
                 }
 
-                context.Bus?.Publish(new AmmoChangedEvent(player, player.Ammo));
-                Fire(context, player, target);
+                context.Bus?.Publish(new AmmoChangedEvent(player, weapon.Ammo));
+                Fire(context, player, weapon, target);
             }
         }
 
-        private static void Fire(EffectContext context, PlayerState player, Combatant target)
+        private static void Fire(EffectContext context, PlayerState player, WeaponState weapon,
+            Combatant target)
         {
             // What the wound has already collected is carried by this round.
             // Read before it is fed, so the first shot into a clean target is
@@ -70,11 +76,14 @@ namespace STSlike.Domain.Effects
             // amplifies the mark along with the round. Adding it afterwards
             // would leave the whole chain immune to the character's own
             // multipliers, which is backwards.
-            int landing = DamageCalculation.Resolve(player, target, player.ShotDamage + bonus,
+            int landing = DamageCalculation.Resolve(player, target, weapon.ShotDamage + bonus,
                 DamageTags.Shot);
 
             int lost = target.TakeDamage(landing);
             context.Bus?.Publish(new DamageDealtEvent(player, target, landing, lost));
+
+            if (lost > 0 && target.Statuses.DropOnHurt())
+                context.Bus?.Publish(new StatusChangedEvent(target, null));
 
             // Then the round leaves its own mark, sized by what it was worth —
             // so opening the target up first makes the whole chain grow faster.

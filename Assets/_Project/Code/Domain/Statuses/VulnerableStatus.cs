@@ -1,12 +1,14 @@
 using STSlike.Domain.Cards;
+using STSlike.Domain.Combat;
 
 namespace STSlike.Domain.Statuses
 {
     /// <summary>
-    /// Vulnerable: this combatant takes 50% more attack damage.
+    /// Broken: this combatant takes 50% more damage — from anything but weapon
+    /// fire, which is settled by the weapon alone.
     ///
-    /// As with Weak, stacks are turns rather than severity — the multiplier is
-    /// the same whether it was applied once or three times over.
+    /// As with Weakness, stacks are turns rather than severity: the multiplier
+    /// is the same whether it was applied once or three times over.
     /// </summary>
     public sealed class VulnerableStatus : IStatusEffect
     {
@@ -19,18 +21,21 @@ namespace STSlike.Domain.Statuses
 
         public StatusDuration Duration => StatusDuration.OwnerTurns;
 
+        public bool IsStance => false;
+        public bool SurvivesBeingHurt => true;
+
         public int ModifyOutgoingDamage(int amount, int stacks, string tag) => amount;
 
         public bool AllowsPlaying(ICardDefinition card, int stacks) => true;
 
-        /// <summary>
-        /// Every kind of blow, gunfire included. This is a hole in the defender's
-        /// guard rather than a fault in the attacker, so nothing about how the
-        /// damage was produced makes it land any softer.
-        /// </summary>
         public int ModifyIncomingDamage(int amount, int stacks, string tag)
         {
             if (stacks <= 0 || amount <= 0)
+                return amount;
+
+            // Weapon fire is settled by the weapon and nothing else. A round
+            // does what a round does whether the target is reeling or braced.
+            if (tag == DamageTags.Shot)
                 return amount;
 
             return amount * 3 / 2;

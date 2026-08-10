@@ -3,6 +3,7 @@ using NUnit.Framework;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Combat;
+using STSlike.Domain.Characters.Albino;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
 using STSlike.Domain.Randomness;
@@ -20,15 +21,15 @@ namespace STSlike.Tests.EditMode
     public sealed class AmmoTests
     {
         private static PlayerState Gunhand(int maxAmmo = 6) =>
-            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), maxAmmo, shotDamage: 6);
+            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), new WeaponState(maxAmmo, 6));
 
         [Test]
         public void ACylinderStartsFull()
         {
             PlayerState player = Gunhand();
 
-            Assert.AreEqual(6, player.Ammo);
-            Assert.AreEqual(6, player.MaxAmmo);
+            Assert.AreEqual(6, player.Weapon.Ammo);
+            Assert.AreEqual(6, player.Weapon.MaxAmmo);
         }
 
         [Test]
@@ -36,30 +37,30 @@ namespace STSlike.Tests.EditMode
         {
             PlayerState player = Gunhand();
 
-            Assert.IsTrue(player.TrySpendAmmo());
-            Assert.AreEqual(5, player.Ammo);
+            Assert.IsTrue(player.Weapon.TrySpend());
+            Assert.AreEqual(5, player.Weapon.Ammo);
         }
 
         [Test]
         public void AnEmptyCylinderRefusesRatherThanGoingNegative()
         {
             PlayerState player = Gunhand(maxAmmo: 1);
-            player.TrySpendAmmo();
+            player.Weapon.TrySpend();
 
             // The card is still played and still spent — it simply does nothing.
-            Assert.IsFalse(player.TrySpendAmmo());
-            Assert.AreEqual(0, player.Ammo);
+            Assert.IsFalse(player.Weapon.TrySpend());
+            Assert.AreEqual(0, player.Weapon.Ammo);
         }
 
         [Test]
         public void ReloadingNeverOverfills()
         {
             PlayerState player = Gunhand();
-            player.TrySpendAmmo();
+            player.Weapon.TrySpend();
 
-            player.Reload(6);
+            player.Weapon.Reload(6);
 
-            Assert.AreEqual(6, player.Ammo);
+            Assert.AreEqual(6, player.Weapon.Ammo);
         }
 
         [Test]
@@ -67,20 +68,30 @@ namespace STSlike.Tests.EditMode
         {
             PlayerState player = Gunhand();
             for (int i = 0; i < 5; i++)
-                player.TrySpendAmmo();
+                player.Weapon.TrySpend();
 
-            player.Reload(2);
+            player.Weapon.Reload(2);
 
-            Assert.AreEqual(3, player.Ammo);
+            Assert.AreEqual(3, player.Weapon.Ammo);
         }
 
         [Test]
-        public void ACharacterWithNoWeaponHasNothingToSpend()
+        public void ACharacterCanCarryNoWeaponAtAll()
         {
             var unarmed = new PlayerState("Unarmed", 70, 3, new Deck(new SystemRng(1)));
 
-            Assert.AreEqual(0, unarmed.MaxAmmo);
-            Assert.IsFalse(unarmed.TrySpendAmmo());
+            // Null rather than a capacity of zero: "carries none" and "carries
+            // an empty one" are different statements, and only one is true of
+            // somebody holding a sword.
+            Assert.IsNull(unarmed.Weapon);
+            Assert.IsFalse(unarmed.IsArmed);
+        }
+
+        [Test]
+        public void AWeaponThatHoldsNothingIsRefusedOutright()
+        {
+            // The way to have no weapon is to have no weapon.
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => new WeaponState(0, 6));
         }
 
         [Test]
@@ -97,13 +108,13 @@ namespace STSlike.Tests.EditMode
                 new Card(new CardDefinition("a", 1, new List<ICardEffect>())),
             });
 
-            player.TrySpendAmmo();
-            player.TrySpendAmmo();
+            player.Weapon.TrySpend();
+            player.Weapon.TrySpend();
             manager.EndTurn();
 
             // Energy came back; the cylinder did not. That gap is the character.
             Assert.AreEqual(3, player.Energy);
-            Assert.AreEqual(4, player.Ammo);
+            Assert.AreEqual(4, player.Weapon.Ammo);
         }
 
         [Test]
@@ -116,7 +127,7 @@ namespace STSlike.Tests.EditMode
                 new EventBus(), cardsPerTurn: 1);
 
             for (int i = 0; i < 5; i++)
-                player.TrySpendAmmo();
+                player.Weapon.TrySpend();
 
             // Walking into the next room with an empty gun would make the reload
             // card mandatory rather than a choice.
@@ -125,7 +136,7 @@ namespace STSlike.Tests.EditMode
                 new Card(new CardDefinition("a", 1, new List<ICardEffect>())),
             });
 
-            Assert.AreEqual(6, player.Ammo);
+            Assert.AreEqual(6, player.Weapon.Ammo);
         }
 
         // ---- as a card ----
@@ -134,8 +145,8 @@ namespace STSlike.Tests.EditMode
         public void AReloadCardPutsRoundsBackAndSaysSo()
         {
             PlayerState player = Gunhand();
-            player.TrySpendAmmo();
-            player.TrySpendAmmo();
+            player.Weapon.TrySpend();
+            player.Weapon.TrySpend();
 
             var bus = new EventBus();
             int reported = -1;
@@ -143,7 +154,7 @@ namespace STSlike.Tests.EditMode
 
             new ReloadEffect(6).Execute(new EffectContext(player, null, bus));
 
-            Assert.AreEqual(6, player.Ammo);
+            Assert.AreEqual(6, player.Weapon.Ammo);
             Assert.AreEqual(6, reported);
         }
 

@@ -6,6 +6,7 @@ using STSlike.Domain.Combat;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
 using STSlike.Domain.Randomness;
+using STSlike.Domain.Characters.Albino;
 using STSlike.Domain.Statuses;
 
 namespace STSlike.Tests.EditMode
@@ -21,7 +22,7 @@ namespace STSlike.Tests.EditMode
     public sealed class HoneycombTests
     {
         private static PlayerState Gunhand(int maxAmmo = 6) =>
-            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), maxAmmo, shotDamage: 6);
+            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), new WeaponState(maxAmmo, 6));
 
         private static Combatant Target(int hp = 400) => new Combatant("Grunt", hp);
 
@@ -86,7 +87,7 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
-        public void AnOpenTargetMakesTheWholeChainGrowFaster()
+        public void OrdinaryConditionsCannotSpeedTheChainUp()
         {
             PlayerState player = Gunhand();
             Combatant target = Target();
@@ -94,10 +95,11 @@ namespace STSlike.Tests.EditMode
 
             new ShotEffect(2).Execute(new EffectContext(player, target));
 
-            // The mark is fed by what the round was actually worth, so opening
-            // the target up compounds rather than merely adding.
-            Assert.AreEqual(4, HoneycombStatus.StacksFrom(9), "first round landed for 9");
-            Assert.AreEqual(400 - 24, target.CurrentHp);
+            // The chain is fed by what the round was worth, and a round is worth
+            // what the weapon says. So the only things that can accelerate it
+            // are the character's own — which is what keeps the curve hers.
+            Assert.AreEqual(400 - 15, target.CurrentHp);
+            Assert.AreEqual(7, Marks(target));
         }
 
         [Test]

@@ -244,7 +244,8 @@ namespace STSlike.Presentation.UI
                 return new PlayerView(player.Name, player.CurrentHp, player.MaxHp,
                     player.Block, player.Energy, player.MaxEnergy,
                     deck.DrawPile.Count, deck.DiscardPile.Count, deck.Hand.Count,
-                    player.Ammo, player.MaxAmmo);
+                    player.Weapon?.Ammo ?? 0, player.Weapon?.MaxAmmo ?? 0,
+                    player.Statuses.Stance);
             }
         }
 

@@ -146,6 +146,57 @@ namespace STSlike.Domain.Statuses
             return removed;
         }
 
+        /// <summary>
+        /// The stance this figure is holding, or null. At most one — entering
+        /// a posture leaves whatever the last one was.
+        /// </summary>
+        public string Stance
+        {
+            get
+            {
+                foreach (ActiveStatus entry in _active)
+                {
+                    if (entry.Status.IsStance)
+                        return entry.Id;
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Drops whatever cannot be held through a real blow. Returns true when
+        /// something actually broke, so the caller can say so.
+        /// </summary>
+        public bool DropOnHurt()
+        {
+            bool broke = false;
+
+            for (int i = _active.Count - 1; i >= 0; i--)
+            {
+                if (_active[i].Status.SurvivesBeingHurt)
+                    continue;
+
+                _active.RemoveAt(i);
+                broke = true;
+            }
+
+            return broke;
+        }
+
+        /// <summary>Removes one condition by id, if it is there.</summary>
+        public bool Remove(string id)
+        {
+            for (int i = 0; i < _active.Count; i++)
+            {
+                if (_active[i].Id != id)
+                    continue;
+
+                _active.RemoveAt(i);
+                return true;
+            }
+            return false;
+        }
+
         /// <summary>Conditions do not survive a fight.</summary>
         public void Clear() => _active.Clear();
     }

@@ -38,7 +38,6 @@ namespace STSlike.Presentation.UI
         private ActorHoverChannel _hover;
 
         private readonly List<ActorOverlayView> _panels = new List<ActorOverlayView>();
-        private Canvas _canvas;
 
         // Values only change on an event, but positions change every frame, so
         // the two are refreshed at different rates.
@@ -141,34 +140,11 @@ namespace STSlike.Presentation.UI
         private bool Place(ActorOverlayView panel, Transform anchor)
         {
             Camera scene = worldCamera != null ? worldCamera : Camera.main;
-            if (scene == null)
-                return false;
-
-            Vector3 screen = scene.WorldToScreenPoint(anchor.position);
-            if (screen.z <= 0f)
-                return false;
-
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    container, screen, UiCamera, out Vector2 local))
+            if (!ScreenAnchor.TryProject(container, scene, anchor.position, out Vector2 local))
                 return false;
 
             panel.Rect.anchoredPosition = local + offset;
             return true;
-        }
-
-        // An overlay canvas is drawn without a camera; any other mode needs the
-        // one the canvas was given, or the projection lands somewhere else.
-        private Camera UiCamera
-        {
-            get
-            {
-                if (_canvas == null)
-                    _canvas = container.GetComponentInParent<Canvas>();
-
-                return _canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay
-                    ? _canvas.worldCamera
-                    : null;
-            }
         }
 
         /// <summary>Grows the pool to cover the room; spares are kept switched off.</summary>

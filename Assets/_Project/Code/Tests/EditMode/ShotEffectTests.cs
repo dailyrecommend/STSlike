@@ -6,6 +6,7 @@ using STSlike.Domain.Combat;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
 using STSlike.Domain.Randomness;
+using STSlike.Domain.Characters.Albino;
 using STSlike.Domain.Statuses;
 
 namespace STSlike.Tests.EditMode
@@ -21,7 +22,7 @@ namespace STSlike.Tests.EditMode
     public sealed class ShotEffectTests
     {
         private static PlayerState Gunhand(int maxAmmo = 6, int shotDamage = 6) =>
-            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), maxAmmo, shotDamage);
+            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), new WeaponState(maxAmmo, shotDamage));
 
         private static Combatant Target(int hp = 100) => new Combatant("Grunt", hp);
 
@@ -35,7 +36,7 @@ namespace STSlike.Tests.EditMode
 
             // Just the weapon: a clean target has nothing to build on yet.
             Assert.AreEqual(94, target.CurrentHp);
-            Assert.AreEqual(5, player.Ammo);
+            Assert.AreEqual(5, player.Weapon.Ammo);
         }
 
         [Test]
@@ -47,7 +48,7 @@ namespace STSlike.Tests.EditMode
             new ShotEffect(3).Execute(new EffectContext(player, target));
 
             // 6, 9, 13 — the wound is deepening under the fire.
-            Assert.AreEqual(3, player.Ammo);
+            Assert.AreEqual(3, player.Weapon.Ammo);
             Assert.AreEqual(100 - 28, target.CurrentHp);
         }
 
@@ -60,14 +61,16 @@ namespace STSlike.Tests.EditMode
             // Asked for four, had two. The card was still played.
             new ShotEffect(4).Execute(new EffectContext(player, target));
 
-            Assert.AreEqual(0, player.Ammo);
+            Assert.AreEqual(0, player.Weapon.Ammo);
             Assert.AreEqual(100 - 15, target.CurrentHp);
         }
 
         [Test]
         public void AnEmptyCylinderFiresNothingAndSaysSo()
         {
-            PlayerState player = Gunhand(maxAmmo: 0);
+            PlayerState player = Gunhand(maxAmmo: 1);
+            player.Weapon.TrySpend();
+
             Combatant target = Target();
             var bus = new EventBus();
             bool clicked = false;
@@ -90,7 +93,7 @@ namespace STSlike.Tests.EditMode
             // Two rounds finished it; the other four stay in the cylinder rather
             // than being emptied into a corpse.
             Assert.IsTrue(target.IsDead);
-            Assert.AreEqual(4, player.Ammo);
+            Assert.AreEqual(4, player.Weapon.Ammo);
         }
 
         // ---- the point of the tag ----
@@ -110,7 +113,7 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
-        public void AnOpenTargetStillTakesMoreFromGunfire()
+        public void ABrokenTargetTakesNoMoreFromGunfire()
         {
             PlayerState player = Gunhand();
             Combatant target = Target();
@@ -118,8 +121,9 @@ namespace STSlike.Tests.EditMode
 
             new ShotEffect(1).Execute(new EffectContext(player, target));
 
-            // 6 leaves the barrel, 9 arrives.
-            Assert.AreEqual(91, target.CurrentHp);
+            // Settled by the weapon at both ends: nothing on the shooter and
+            // nothing on the target moves the number.
+            Assert.AreEqual(94, target.CurrentHp);
         }
 
         [Test]

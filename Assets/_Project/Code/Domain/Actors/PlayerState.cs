@@ -15,66 +15,27 @@ namespace STSlike.Domain.Actors
         public Deck Deck { get; }
 
         /// <summary>
-        /// Rounds in the cylinder. Unlike energy this does not come back at the
-        /// start of a turn — running dry and having to reload is the cost the
-        /// whole weapon is built around.
+        /// The weapon being carried, or null for a character who carries none.
         ///
-        /// Zero max for a character who carries no such weapon.
+        /// Unlike energy its ammunition does not come back at the start of a
+        /// turn — running dry and having to reload is the cost a weapon like
+        /// that is built around.
         /// </summary>
-        public int MaxAmmo { get; }
-        public int Ammo { get; private set; }
+        public WeaponState Weapon { get; }
 
-        /// <summary>
-        /// What one round does before anything modifies it. A property of the
-        /// weapon rather than of the card that pulls the trigger, which is what
-        /// makes every shot land for the same amount.
-        /// </summary>
-        public int ShotDamage { get; }
+        public bool IsArmed => Weapon != null;
 
         public PlayerState(string name, int maxHp, int maxEnergy, Deck deck,
-            int maxAmmo = 0, int shotDamage = 0)
+            WeaponState weapon = null)
             : base(name, maxHp)
         {
             if (maxEnergy < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxEnergy), "Max energy cannot be negative.");
-            if (maxAmmo < 0)
-                throw new ArgumentOutOfRangeException(nameof(maxAmmo), "Max ammo cannot be negative.");
 
             MaxEnergy = maxEnergy;
-            MaxAmmo = maxAmmo;
-            ShotDamage = shotDamage;
+            Weapon = weapon;
             Deck = deck ?? throw new ArgumentNullException(nameof(deck));
             Energy = 0;
-            Ammo = maxAmmo;
-        }
-
-        /// <summary>
-        /// Puts rounds back in, never past the cylinder's capacity. A count
-        /// rather than "fill it" so a card can offer a partial reload.
-        /// </summary>
-        public void Reload(int rounds)
-        {
-            if (rounds <= 0)
-                return;
-
-            Ammo = Math.Min(MaxAmmo, Ammo + rounds);
-        }
-
-        /// <summary>Fills the cylinder. Used when a fight begins.</summary>
-        public void ReloadFully() => Ammo = MaxAmmo;
-
-        /// <summary>
-        /// Takes one round if there is one. False means the hammer fell on an
-        /// empty chamber — the card was still played and still spent, it simply
-        /// did nothing.
-        /// </summary>
-        public bool TrySpendAmmo()
-        {
-            if (Ammo <= 0)
-                return false;
-
-            Ammo--;
-            return true;
         }
 
         /// <summary>Called at the start of the player's turn.</summary>
