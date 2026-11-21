@@ -56,6 +56,12 @@ namespace STSlike.Data
         [Header("Starting Deck")]
         [SerializeField] private List<DeckEntry> startingDeck = new List<DeckEntry>();
 
+        [Header("Starting Relics")]
+        [Tooltip("Carried from the first room. The character's signature item " +
+                 "rather than something won — turn its Obtainable off so it does " +
+                 "not also turn up as a reward.")]
+        [SerializeField] private List<RelicData> startingRelics = new List<RelicData>();
+
         public string Id => id;
         public int MaxHp => maxHp;
         public int MaxEnergy => maxEnergy;
@@ -76,6 +82,25 @@ namespace STSlike.Data
         public GameObject ModelPrefab => modelPrefab;
 
         public IReadOnlyList<ICardDefinition> StartingDeck => BuildStartingDeck();
+
+        /// <summary>
+        /// Dragged in as assets because that is a pleasant way to pick them, but
+        /// what leaves here are ids — the run asks the catalogue for a fresh
+        /// relic rather than carrying the authored object around.
+        /// </summary>
+        public IReadOnlyList<string> StartingRelicIds
+        {
+            get
+            {
+                var ids = new List<string>(startingRelics.Count);
+                foreach (RelicData relic in startingRelics)
+                {
+                    if (relic != null && !string.IsNullOrEmpty(relic.Id))
+                        ids.Add(relic.Id);
+                }
+                return ids;
+            }
+        }
 
         // Expanded on read so the inspector can stay in the compact
         // (card, count) form that is actually pleasant to edit.

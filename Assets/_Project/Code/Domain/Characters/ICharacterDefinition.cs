@@ -30,5 +30,15 @@ namespace STSlike.Domain.Characters
 
         /// <summary>Expanded copies: three Strikes appear three times.</summary>
         IReadOnlyList<ICardDefinition> StartingDeck { get; }
+
+        /// <summary>
+        /// Relics carried from the first room, by id — the character's signature
+        /// item rather than something won.
+        ///
+        /// Ids rather than the relics themselves because a relic keeps its own
+        /// state: the run needs a fresh one, not the object the content was
+        /// authored on.
+        /// </summary>
+        IReadOnlyList<string> StartingRelicIds { get; }
     }
 }

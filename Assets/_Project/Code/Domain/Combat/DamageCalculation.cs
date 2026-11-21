@@ -1,4 +1,5 @@
 using STSlike.Domain.Actors;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Domain.Combat
 {
@@ -26,7 +27,15 @@ namespace STSlike.Domain.Combat
             // what arrives, and each step rounds down on its own. The tag rides
             // along so a condition can decline to touch this kind of blow.
             int thrown = source != null ? source.Statuses.ModifyOutgoingDamage(amount, tag) : amount;
-            return target != null ? target.Statuses.ModifyIncomingDamage(thrown, tag) : thrown;
+            thrown = Carried(source)?.ModifyOutgoingDamage(thrown, tag) ?? thrown;
+
+            int landing = target != null ? target.Statuses.ModifyIncomingDamage(thrown, tag) : thrown;
+            return Carried(target)?.ModifyIncomingDamage(landing, tag) ?? landing;
         }
+
+        // Only the player carries anything. Asked here rather than hung off
+        // every combatant so an enemy does not grow a pocket it never uses.
+        private static RelicCollection Carried(Combatant combatant) =>
+            (combatant as PlayerState)?.Relics;
     }
 }

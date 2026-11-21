@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Characters;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Domain.Content
 {
@@ -25,5 +26,11 @@ namespace STSlike.Domain.Content
         IEnumerable<ICardDefinition> Cards { get; }
         IEnumerable<IEnemyDefinition> Enemies { get; }
         IEnumerable<ICharacterDefinition> Characters { get; }
+
+        /// <summary>Rooms the player can walk into.</summary>
+        IEnumerable<IEncounterDefinition> Encounters { get; }
+
+        /// <summary>Relics that can be carried.</summary>
+        IEnumerable<IRelicDefinition> Relics { get; }
     }
 }

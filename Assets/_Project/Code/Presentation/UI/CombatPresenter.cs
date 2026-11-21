@@ -8,6 +8,7 @@ using STSlike.Domain.Effects;
 using STSlike.Domain.Combat;
 using STSlike.Domain.Events;
 using STSlike.Domain.Map;
+using STSlike.Domain.Relics;
 using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
 using STSlike.Domain.Statuses;
@@ -37,6 +38,7 @@ namespace STSlike.Presentation.UI
         private readonly List<CardView> _hand = new List<CardView>();
         private readonly List<RewardView> _rewards = new List<RewardView>();
         private readonly List<ActorHudView> _actors = new List<ActorHudView>();
+        private readonly List<string> _relics = new List<string>();
 
         // Set when the turn is handed over, cleared once the screen has finished
         // showing what the enemy did with it.
@@ -246,6 +248,25 @@ namespace STSlike.Presentation.UI
                     deck.DrawPile.Count, deck.DiscardPile.Count, deck.Hand.Count,
                     player.Weapon?.Ammo ?? 0, player.Weapon?.MaxAmmo ?? 0,
                     player.Statuses.Stance);
+            }
+        }
+
+        /// <summary>
+        /// What the player is carrying, in the order it was picked up.
+        ///
+        /// Ids rather than anything to look at: which sprite a relic wears is
+        /// the catalogue's business, and the rules do not hold one. The list is
+        /// reused between calls, so a HUD asking every frame allocates nothing.
+        /// </summary>
+        public IReadOnlyList<string> Relics
+        {
+            get
+            {
+                _relics.Clear();
+                foreach (Relic relic in _flow.Run.Player.Relics.Held)
+                    _relics.Add(relic.Id);
+
+                return _relics;
             }
         }
 

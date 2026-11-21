@@ -1,5 +1,6 @@
 using System;
 using STSlike.Domain.Cards;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Domain.Actors
 {
@@ -24,6 +25,13 @@ namespace STSlike.Domain.Actors
         public WeaponState Weapon { get; }
 
         public bool IsArmed => Weapon != null;
+
+        /// <summary>
+        /// What is being carried this run. On the player rather than on the run
+        /// because relics reach into damage, and the damage calculation only
+        /// ever sees combatants.
+        /// </summary>
+        public RelicCollection Relics { get; } = new RelicCollection();
 
         public PlayerState(string name, int maxHp, int maxEnergy, Deck deck,
             WeaponState weapon = null)

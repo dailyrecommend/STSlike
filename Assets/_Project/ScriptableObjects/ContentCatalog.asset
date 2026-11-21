@@ -27,3 +27,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 51e5f1d39cec3d942932017e5f3daf38, type: 2}
   characters:
   - {fileID: 11400000, guid: ec9446ac3de4b8f43bc9a6d53c07e765, type: 2}
+  encounters:
+  - {fileID: 11400000, guid: 7af7aef50b0cd6f4fadfba2e58752ff9, type: 2}
+  relics:
+  - {fileID: 11400000, guid: 5eb59dc76a14a0a4aa564ba16cc1cb09, type: 2}

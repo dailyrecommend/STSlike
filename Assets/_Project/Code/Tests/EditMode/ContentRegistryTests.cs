@@ -4,6 +4,7 @@ using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Characters;
 using STSlike.Domain.Content;
+using STSlike.Domain.Relics;
 using STSlike.Domain.Effects;
 
 namespace STSlike.Tests.EditMode
@@ -21,6 +22,17 @@ namespace STSlike.Tests.EditMode
             public IEnumerable<ICardDefinition> Cards { get; set; } = new List<ICardDefinition>();
             public IEnumerable<IEnemyDefinition> Enemies { get; set; } = new List<IEnemyDefinition>();
             public IEnumerable<ICharacterDefinition> Characters { get; set; } = new List<ICharacterDefinition>();
+            public IEnumerable<IEncounterDefinition> Encounters { get; set; } = new List<IEncounterDefinition>();
+            public IEnumerable<IRelicDefinition> Relics { get; set; } = new List<IRelicDefinition>();
+        }
+
+        private sealed class FakeEncounter : IEncounterDefinition
+        {
+            public string Id { get; set; }
+            public EnemyTier Tier { get; set; } = EnemyTier.Normal;
+            public IReadOnlyList<string> EnemyIds { get; set; } = new List<string>();
+            public int MinFloor { get; set; } = 1;
+            public int MaxFloor { get; set; }
         }
 
         private static CardDefinition Card(string id, int cost = 1) =>
@@ -98,6 +110,29 @@ namespace STSlike.Tests.EditMode
             // One unfinished asset should not take the rest of the game with it.
             Assert.AreEqual(1, registry.Cards.Count);
             Assert.IsNotNull(registry.Card("strike"));
+        }
+
+        [Test]
+        public void RoomsAreCataloguedLikeEverythingElse()
+        {
+            var registry = new ContentRegistry(new[]
+            {
+                new FakeSource
+                {
+                    Encounters = new List<IEncounterDefinition>
+                    {
+                        new FakeEncounter
+                        {
+                            Id = "two-slimes",
+                            EnemyIds = new List<string> { "slime", "slime" },
+                        },
+                    },
+                },
+            });
+
+            Assert.AreEqual(1, registry.Encounters.Count);
+            Assert.AreEqual(2, registry.Encounter("two-slimes").EnemyIds.Count,
+                "a room naming the same enemy twice is two enemies, not one");
         }
 
         [Test]

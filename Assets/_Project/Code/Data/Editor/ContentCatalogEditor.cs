@@ -16,7 +16,8 @@ namespace STSlike.Data.Editor
 
             EditorGUILayout.HelpBox(
                 $"{catalog.CardCount} cards, {catalog.EnemyCount} enemies, " +
-                $"{catalog.CharacterCount} characters.\n\n" +
+                $"{catalog.CharacterCount} characters, {catalog.EncounterCount} rooms, " +
+                $"{catalog.RelicCount} relics.\n\n" +
                 "Rescan after adding or deleting content assets. The lists below " +
                 "are what ships in the build.",
                 catalog.CardCount == 0 ? MessageType.Warning : MessageType.Info);

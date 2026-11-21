@@ -7,6 +7,7 @@ using STSlike.Domain.Commands;
 using STSlike.Domain.Effects;
 using STSlike.Domain.Events;
 using STSlike.Domain.Randomness;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Domain.Combat
 {
@@ -63,20 +64,16 @@ namespace STSlike.Domain.Combat
             foreach (EnemyState enemy in _context.Enemies)
                 enemy.Statuses.Clear();
 
-            // Every fight starts with a full magazine. Carrying an empty gun in
-            // from the last room would make the reload card mandatory rather
-            // than a decision.
-            _context.Player.Weapon?.ReloadFully();
+            // Every fight starts with an empty weapon. Loading it is the opening
+            // move; rounds left over from the last room would make the first
+            // turn of one fight different from the first turn of another.
+            _context.Player.Weapon?.Empty();
 
+            _context.Player.Relics.CombatStarted(Relics());
             _bus.Publish(new CombatStartedEvent());
             BeginPlayerTurn();
         }
 
-        /// <summary>
-        /// Attempts to play a card from hand. Returns false (without changing
-        /// state) if it is not the player's turn, the card is not in hand, or
-        /// the player cannot afford it.
-        /// </summary>
         /// <summary>
         /// Whether the rules allow playing this card right now.
         ///
@@ -106,6 +103,7 @@ namespace STSlike.Domain.Combat
 
             PlayerState player = _context.Player;
             player.SpendEnergy(card.Cost);
+            _context.Player.Relics.CardPlayed(card, Relics());
             _bus.Publish(new CardPlayedEvent(card));
 
             // One pass per recipient. A card that sweeps the room runs its
@@ -122,6 +120,7 @@ namespace STSlike.Domain.Combat
             player.Deck.DiscardFromHand(card);
 
             CheckCombatEnd();
+            _context.Player.Relics.CardResolved(card, Relics());
             _bus.Publish(new CardResolvedEvent(card));
             PublishEndedIfOver();
             return true;
@@ -247,6 +246,7 @@ namespace STSlike.Domain.Combat
             player.Deck.DrawCards(_cardsPerTurn);
 
             _context.Phase = CombatPhase.PlayerTurn;
+            _context.Player.Relics.TurnStarted(Relics());
             _bus.Publish(new PlayerTurnStartedEvent());
         }
 
@@ -357,6 +357,12 @@ namespace STSlike.Domain.Combat
             else if (_context.Player.IsDead)
                 _context.Phase = CombatPhase.Lost;
         }
+
+        /// <summary>
+        /// What a relic is handed when it acts. Built fresh each time rather
+        /// than kept, since it is only a pair of references.
+        /// </summary>
+        private RelicContext Relics() => new RelicContext(_context.Player, _bus);
 
         private void PublishEndedIfOver()
         {

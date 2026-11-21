@@ -11,6 +11,7 @@ using STSlike.Domain.Events;
 using STSlike.Domain.Map;
 using STSlike.Domain.Progression;
 using STSlike.Domain.Randomness;
+using STSlike.Domain.Relics;
 using STSlike.Domain.Run;
 using STSlike.Domain.Run.Rewards;
 using STSlike.Infrastructure.Persistence;
@@ -98,6 +99,9 @@ namespace STSlike.Presentation
                     var deck = new Deck(rng);
                     var player = new PlayerState(ResolvedName, ResolvedMaxHp, ResolvedMaxEnergy,
                         deck, BuildWeapon());
+
+                    GrantStartingRelics(player);
+
                     return new RunContext(map, player, BuildStarterDeck(),
                         seed, ResolvedStartingCredits, ResolvedCharacterId);
                 },
@@ -184,6 +188,7 @@ namespace STSlike.Presentation
             RegisterIfPresent<CardListPopupBinder>(builder);
             RegisterIfPresent<MapViewBinder>(builder);
             RegisterIfPresent<CylinderBinder>(builder);
+            RegisterIfPresent<RelicRowBinder>(builder);
 
             if (FindFirstObjectByType<CombatStageBinder>(FindObjectsInactive.Include) != null)
             {
@@ -266,6 +271,33 @@ namespace STSlike.Presentation
         /// The weapon this character carries, or null when they carry none —
         /// which is what a capacity of zero on the definition means.
         /// </summary>
+        /// <summary>
+        /// Hands the character whatever they walk in carrying.
+        ///
+        /// A fresh relic per run, built from the catalogue by id — the authored
+        /// asset is a description, not the thing itself, and a relic that counts
+        /// would otherwise still be counting from the last run.
+        /// </summary>
+        private void GrantStartingRelics(PlayerState player)
+        {
+            if (_character == null)
+                return;
+
+            foreach (string id in _character.StartingRelicIds)
+            {
+                IRelicDefinition definition = _content.Relic(id);
+                if (definition == null)
+                {
+                    Debug.LogError($"[CombatLifetimeScope] No relic with id '{id}'. " +
+                                   "Rescan the catalogue, or check the relic's behaviour " +
+                                   "is set — an unfinished one has no id to find.", this);
+                    continue;
+                }
+
+                player.Relics.Add(definition.Create());
+            }
+        }
+
         private WeaponState BuildWeapon()
         {
             if (_character == null || _character.MaxAmmo <= 0)

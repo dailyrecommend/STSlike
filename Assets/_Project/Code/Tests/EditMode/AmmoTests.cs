@@ -24,18 +24,22 @@ namespace STSlike.Tests.EditMode
             new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), new WeaponState(maxAmmo, 6));
 
         [Test]
-        public void ACylinderStartsFull()
+        public void ACylinderStartsEmpty()
         {
             PlayerState player = Gunhand();
 
-            Assert.AreEqual(6, player.Weapon.Ammo);
+            // Loading it is the opening move. Handing the player a full weapon
+            // would make the reload card a formality rather than a decision.
+            Assert.AreEqual(0, player.Weapon.Ammo);
             Assert.AreEqual(6, player.Weapon.MaxAmmo);
+            Assert.IsTrue(player.Weapon.IsEmpty);
         }
 
         [Test]
         public void SpendingTakesOneRound()
         {
             PlayerState player = Gunhand();
+            player.Weapon.ReloadFully();
 
             Assert.IsTrue(player.Weapon.TrySpend());
             Assert.AreEqual(5, player.Weapon.Ammo);
@@ -45,6 +49,7 @@ namespace STSlike.Tests.EditMode
         public void AnEmptyCylinderRefusesRatherThanGoingNegative()
         {
             PlayerState player = Gunhand(maxAmmo: 1);
+            player.Weapon.Reload(1);
             player.Weapon.TrySpend();
 
             // The card is still played and still spent — it simply does nothing.
@@ -56,9 +61,8 @@ namespace STSlike.Tests.EditMode
         public void ReloadingNeverOverfills()
         {
             PlayerState player = Gunhand();
-            player.Weapon.TrySpend();
 
-            player.Weapon.Reload(6);
+            player.Weapon.Reload(99);
 
             Assert.AreEqual(6, player.Weapon.Ammo);
         }
@@ -67,10 +71,9 @@ namespace STSlike.Tests.EditMode
         public void APartialReloadPutsBackJustThatMany()
         {
             PlayerState player = Gunhand();
-            for (int i = 0; i < 5; i++)
-                player.Weapon.TrySpend();
 
             player.Weapon.Reload(2);
+            player.Weapon.Reload(1);
 
             Assert.AreEqual(3, player.Weapon.Ammo);
         }
@@ -108,6 +111,7 @@ namespace STSlike.Tests.EditMode
                 new Card(new CardDefinition("a", 1, new List<ICardEffect>())),
             });
 
+            player.Weapon.ReloadFully();
             player.Weapon.TrySpend();
             player.Weapon.TrySpend();
             manager.EndTurn();
@@ -118,7 +122,7 @@ namespace STSlike.Tests.EditMode
         }
 
         [Test]
-        public void EveryFightStartsWithAFullCylinder()
+        public void EveryFightStartsWithAnEmptyCylinder()
         {
             PlayerState player = Gunhand();
             var enemy = new EnemyState("Grunt", 30, 5);
@@ -126,17 +130,17 @@ namespace STSlike.Tests.EditMode
                 new CombatContext(player, new List<EnemyState> { enemy }),
                 new EventBus(), cardsPerTurn: 1);
 
-            for (int i = 0; i < 5; i++)
-                player.Weapon.TrySpend();
+            // Rounds left over from the last room.
+            player.Weapon.ReloadFully();
 
-            // Walking into the next room with an empty gun would make the reload
-            // card mandatory rather than a choice.
             manager.StartCombat(new List<Card>
             {
                 new Card(new CardDefinition("a", 1, new List<ICardEffect>())),
             });
 
-            Assert.AreEqual(6, player.Weapon.Ammo);
+            // Carrying them forward would make the first turn of one fight
+            // different from the first turn of another.
+            Assert.AreEqual(0, player.Weapon.Ammo);
         }
 
         // ---- as a card ----
@@ -145,8 +149,6 @@ namespace STSlike.Tests.EditMode
         public void AReloadCardPutsRoundsBackAndSaysSo()
         {
             PlayerState player = Gunhand();
-            player.Weapon.TrySpend();
-            player.Weapon.TrySpend();
 
             var bus = new EventBus();
             int reported = -1;
@@ -162,6 +164,8 @@ namespace STSlike.Tests.EditMode
         public void ReloadingAFullCylinderSaysNothing()
         {
             PlayerState player = Gunhand();
+            player.Weapon.ReloadFully();
+
             var bus = new EventBus();
             bool announced = false;
             bus.Subscribe<AmmoChangedEvent>(_ => announced = true);

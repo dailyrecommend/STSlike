@@ -4,6 +4,7 @@ using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Characters;
 using STSlike.Domain.Content;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Data
 {
@@ -31,17 +32,23 @@ namespace STSlike.Data
 
         [SerializeField] private List<EnemyData> enemies = new List<EnemyData>();
         [SerializeField] private List<CharacterData> characters = new List<CharacterData>();
+        [SerializeField] private List<EncounterData> encounters = new List<EncounterData>();
+        [SerializeField] private List<RelicData> relics = new List<RelicData>();
 
         public string Name => name;
 
         public IEnumerable<ICardDefinition> Cards => cards;
         public IEnumerable<IEnemyDefinition> Enemies => enemies;
         public IEnumerable<ICharacterDefinition> Characters => characters;
+        public IEnumerable<IEncounterDefinition> Encounters => encounters;
+        public IEnumerable<IRelicDefinition> Relics => relics;
 
         /// <summary>Counts for the inspector; cheaper than describing the lists.</summary>
         public int CardCount => cards.Count;
         public int EnemyCount => enemies.Count;
         public int CharacterCount => characters.Count;
+        public int EncounterCount => encounters.Count;
+        public int RelicCount => relics.Count;
 
 #if UNITY_EDITOR
         /// <summary>
@@ -56,6 +63,8 @@ namespace STSlike.Data
             cards = Collect<CardData>(d => d.Id);
             enemies = Collect<EnemyData>(d => d.Id);
             characters = Collect<CharacterData>(d => d.Id);
+            encounters = Collect<EncounterData>(d => d.Id);
+            relics = Collect<RelicData>(d => d.Id);
 
             UnityEditor.EditorUtility.SetDirty(this);
         }

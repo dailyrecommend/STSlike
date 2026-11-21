@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Characters;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Domain.Content
 {
@@ -24,9 +25,13 @@ namespace STSlike.Domain.Content
 
         IEnemyDefinition Enemy(string id);
         ICharacterDefinition Character(string id);
+        IEncounterDefinition Encounter(string id);
+        IRelicDefinition Relic(string id);
 
         IReadOnlyList<ICardDefinition> Cards { get; }
         IReadOnlyList<IEnemyDefinition> Enemies { get; }
         IReadOnlyList<ICharacterDefinition> Characters { get; }
+        IReadOnlyList<IEncounterDefinition> Encounters { get; }
+        IReadOnlyList<IRelicDefinition> Relics { get; }
     }
 }

@@ -40,7 +40,11 @@ namespace STSlike.Domain.Actors
 
             MaxAmmo = maxAmmo;
             ShotDamage = shotDamage;
-            Ammo = maxAmmo;
+
+            // Starts empty. Loading the weapon is the opening move, not
+            // something that has already happened — which is what makes the
+            // first turn of every fight a real decision rather than a formality.
+            Ammo = 0;
         }
 
         /// <summary>
@@ -55,8 +59,15 @@ namespace STSlike.Domain.Actors
             Ammo = Math.Min(MaxAmmo, Ammo + rounds);
         }
 
-        /// <summary>Fills it. Used when a fight begins.</summary>
+        /// <summary>Fills it, for a card that does.</summary>
         public void ReloadFully() => Ammo = MaxAmmo;
+
+        /// <summary>
+        /// Empties it. Used when a fight begins, so rounds left over from the
+        /// last room are not carried into the next one — every fight opens the
+        /// same way, with an empty weapon and a choice about when to load it.
+        /// </summary>
+        public void Empty() => Ammo = 0;
 
         /// <summary>
         /// Takes one round if there is one. False means the hammer fell on an

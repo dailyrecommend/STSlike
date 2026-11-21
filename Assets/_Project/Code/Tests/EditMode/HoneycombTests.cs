@@ -21,8 +21,14 @@ namespace STSlike.Tests.EditMode
     /// </summary>
     public sealed class HoneycombTests
     {
-        private static PlayerState Gunhand(int maxAmmo = 6) =>
-            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), new WeaponState(maxAmmo, 6));
+        /// <summary>Loaded, since these are about the chain rather than about loading.</summary>
+        private static PlayerState Gunhand(int maxAmmo = 6)
+        {
+            var weapon = new WeaponState(maxAmmo, 6);
+            weapon.ReloadFully();
+
+            return new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), weapon);
+        }
 
         private static Combatant Target(int hp = 400) => new Combatant("Grunt", hp);
 
@@ -164,6 +170,10 @@ namespace STSlike.Tests.EditMode
             {
                 new Card(new CardDefinition("a", 1, new List<ICardEffect>())),
             });
+
+            // A fight begins with an empty weapon; these tests are about what
+            // happens once it is loaded.
+            player.Weapon.ReloadFully();
 
             return manager;
         }

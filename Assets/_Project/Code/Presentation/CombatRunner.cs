@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using STSlike.Data;
 using STSlike.Domain.Actors;
@@ -81,9 +82,11 @@ namespace STSlike.Presentation
         }
 
         /// <summary>
-        /// Picks the opposition for this node. One enemy for now; the shape is
-        /// a list so an encounter table can hand back a whole room later without
-        /// anything downstream changing.
+        /// Picks the opposition for this node — a whole authored room where one
+        /// fits, and otherwise a single enemy of the right tier.
+        ///
+        /// Which tier suits which node is a rule, so the filtering lives here
+        /// rather than in the registry: the registry only knows what exists.
         /// </summary>
         private List<IEnemyDefinition> PickEnemies(CombatRequest request)
         {
@@ -91,12 +94,55 @@ namespace STSlike.Presentation
                 : request.IsElite ? EnemyTier.Elite
                 : EnemyTier.Normal;
 
+            List<IEnemyDefinition> room = PickRoom(wanted, request.Floor);
+            return room.Count > 0 ? room : PickLoneEnemy(wanted);
+        }
+
+        private List<IEnemyDefinition> PickRoom(EnemyTier wanted, int floor)
+        {
+            var candidates = new List<IEncounterDefinition>();
+
+            IReadOnlyList<IEncounterDefinition> all = _content != null
+                ? _content.Encounters
+                : Array.Empty<IEncounterDefinition>();
+
+            foreach (IEncounterDefinition room in all)
+            {
+                if (room != null && room.Tier == wanted && Suits(room, floor))
+                    candidates.Add(room);
+            }
+
+            var enemies = new List<IEnemyDefinition>();
+            if (candidates.Count == 0)
+                return enemies;
+
+            foreach (string id in candidates[_rng.Next(candidates.Count)].EnemyIds)
+            {
+                // A room naming an enemy that is not installed loses that enemy
+                // rather than the whole fight.
+                IEnemyDefinition enemy = _content.Enemy(id);
+                if (enemy != null)
+                    enemies.Add(enemy);
+            }
+
+            return enemies;
+        }
+
+        // A maximum of zero means the room never stops being appropriate.
+        private static bool Suits(IEncounterDefinition room, int floor) =>
+            floor >= room.MinFloor && (room.MaxFloor <= 0 || floor <= room.MaxFloor);
+
+        /// <summary>
+        /// What a fight looks like before any rooms have been authored: one
+        /// enemy of roughly the right sort. Keeps a project with enemies but no
+        /// encounters playable.
+        /// </summary>
+        private List<IEnemyDefinition> PickLoneEnemy(EnemyTier wanted)
+        {
             IReadOnlyList<IEnemyDefinition> all = _content != null
                 ? _content.Enemies
-                : System.Array.Empty<IEnemyDefinition>();
+                : Array.Empty<IEnemyDefinition>();
 
-            // Which tier suits this node is a rule, so the filtering lives here
-            // rather than in the registry — the registry only knows what exists.
             var candidates = new List<IEnemyDefinition>();
             foreach (IEnemyDefinition definition in all)
             {
@@ -104,7 +150,7 @@ namespace STSlike.Presentation
                     candidates.Add(definition);
             }
 
-            // Fall back to whatever exists rather than showing an empty room.
+            // Rather than show an empty room, take whatever exists.
             if (candidates.Count == 0)
             {
                 foreach (IEnemyDefinition definition in all)

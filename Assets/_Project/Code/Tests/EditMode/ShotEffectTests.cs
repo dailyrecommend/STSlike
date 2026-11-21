@@ -21,8 +21,14 @@ namespace STSlike.Tests.EditMode
     /// </summary>
     public sealed class ShotEffectTests
     {
-        private static PlayerState Gunhand(int maxAmmo = 6, int shotDamage = 6) =>
-            new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), new WeaponState(maxAmmo, shotDamage));
+        /// <summary>Loaded, since these are about firing rather than about loading.</summary>
+        private static PlayerState Gunhand(int maxAmmo = 6, int shotDamage = 6)
+        {
+            var weapon = new WeaponState(maxAmmo, shotDamage);
+            weapon.ReloadFully();
+
+            return new PlayerState("Albino", 70, 3, new Deck(new SystemRng(1)), weapon);
+        }
 
         private static Combatant Target(int hp = 100) => new Combatant("Grunt", hp);
 

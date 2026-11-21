@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using STSlike.Domain.Actors;
 using STSlike.Domain.Cards;
 using STSlike.Domain.Characters;
+using STSlike.Domain.Relics;
 
 namespace STSlike.Domain.Content
 {
@@ -29,9 +30,17 @@ namespace STSlike.Domain.Content
         private readonly Dictionary<string, ICharacterDefinition> _characters =
             new Dictionary<string, ICharacterDefinition>(StringComparer.Ordinal);
 
+        private readonly Dictionary<string, IEncounterDefinition> _encounters =
+            new Dictionary<string, IEncounterDefinition>(StringComparer.Ordinal);
+
+        private readonly Dictionary<string, IRelicDefinition> _relics =
+            new Dictionary<string, IRelicDefinition>(StringComparer.Ordinal);
+
         private readonly List<ICardDefinition> _cardList = new List<ICardDefinition>();
         private readonly List<IEnemyDefinition> _enemyList = new List<IEnemyDefinition>();
         private readonly List<ICharacterDefinition> _characterList = new List<ICharacterDefinition>();
+        private readonly List<IEncounterDefinition> _encounterList = new List<IEncounterDefinition>();
+        private readonly List<IRelicDefinition> _relicList = new List<IRelicDefinition>();
 
         private readonly List<string> _overrides = new List<string>();
 
@@ -55,20 +64,28 @@ namespace STSlike.Domain.Content
                 Absorb(source.Cards, _cards, source.Name, "card", d => d.Id);
                 Absorb(source.Enemies, _enemies, source.Name, "enemy", d => d.Id);
                 Absorb(source.Characters, _characters, source.Name, "character", d => d.Id);
+                Absorb(source.Encounters, _encounters, source.Name, "encounter", d => d.Id);
+                Absorb(source.Relics, _relics, source.Name, "relic", d => d.Id);
             }
 
             _cardList.AddRange(_cards.Values);
             _enemyList.AddRange(_enemies.Values);
             _characterList.AddRange(_characters.Values);
+            _encounterList.AddRange(_encounters.Values);
+            _relicList.AddRange(_relics.Values);
         }
 
         public ICardDefinition Card(string id) => Find(_cards, id);
         public IEnemyDefinition Enemy(string id) => Find(_enemies, id);
         public ICharacterDefinition Character(string id) => Find(_characters, id);
+        public IEncounterDefinition Encounter(string id) => Find(_encounters, id);
+        public IRelicDefinition Relic(string id) => Find(_relics, id);
 
         public IReadOnlyList<ICardDefinition> Cards => _cardList;
         public IReadOnlyList<IEnemyDefinition> Enemies => _enemyList;
         public IReadOnlyList<ICharacterDefinition> Characters => _characterList;
+        public IReadOnlyList<IEncounterDefinition> Encounters => _encounterList;
+        public IReadOnlyList<IRelicDefinition> Relics => _relicList;
 
         private static T Find<T>(Dictionary<string, T> from, string id) where T : class
         {

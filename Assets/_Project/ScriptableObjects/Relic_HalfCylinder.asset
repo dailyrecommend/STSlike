@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6016cacc3569c942886231e27982364, type: 3}
+  m_Name: Relic_HalfCylinder
+  m_EditorClassIdentifier: STSlike.Data::STSlike.Data.RelicData
+  behaviour:
+    rid: 653525754433765439
+  rarity: 0
+  obtainable: 1
+  characterId: AL
+  displayName: HalfCylinder
+  description: A half-loaded revolver magazine
+  icon: {fileID: 21300000, guid: 11dd0252a77be9549998e22156f1781b, type: 3}
+  references:
+    version: 2
+    RefIds:
+    - rid: 653525754433765439
+      type: {class: SpeedLoaderRelic, ns: STSlike.Domain.Characters.Albino, asm: STSlike.Domain}
+      data:
+        rounds: 3
